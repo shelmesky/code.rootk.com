@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/classifier-V2.py.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v10">
+<meta name="syntax" content="python">
+<meta name="settings" content="number_lines,use_css,pre_wrap,expand_tabs">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.lnr { color: #a52a2a; }
+.Constant { color: #ff00ff; }
+.PreProc { color: #a020f0; }
+.Comment { color: #0000ff; }
+.Identifier { color: #008b8b; }
+.Statement { color: #a52a2a; font-weight: bold; }
+-->
+</style>
+</head>
+<body>
+<pre>
+<span class="lnr"> 1 </span><span class="Statement">class</span> <span class="Identifier">CreateInstance</span>(tornado.web.RequestHandler):
+<span class="lnr"> 2 </span>      <span class="Comment"># 使用装饰器，使当前连接不会自动结束</span>
+<span class="lnr"> 3 </span>      <span class="PreProc">@</span><span class="Identifier">tornado.web.asynchronous</span>
+<span class="lnr"> 4 </span>      <span class="Statement">def</span> <span class="Identifier">post</span>(self):
+<span class="lnr"> 5 </span>          message_id = gen_message_id()
+<span class="lnr"> 6 </span>          body = {
+<span class="lnr"> 7 </span>          <span class="Constant">'user_name'</span>: self.get_argument(<span class="Constant">'user_name'</span>, default=<span class="Identifier">None</span>),
+<span class="lnr"> 8 </span>          <span class="Constant">'user_id'</span>: self.get_argument(<span class="Constant">'user_id'</span>, default=<span class="Identifier">None</span>),
+<span class="lnr"> 9 </span>          <span class="Constant">'uuid'</span>: self.get_argument(<span class="Constant">'uuid'</span>, default=<span class="Identifier">None</span>),
+<span class="lnr">10 </span>          <span class="Constant">'instance_name'</span>: self.get_argument(<span class="Constant">'instance_name'</span>, default=<span class="Identifier">None</span>),
+<span class="lnr">11 </span>          <span class="Constant">'msg_id'</span>: message_id
+<span class="lnr">12 </span>          }
+<span class="lnr">13 </span>
+<span class="lnr">14 </span>          <span class="Comment"># 不用等待，立刻将data和回调、消息ID添加到队列</span>
+<span class="lnr">15 </span>          <span class="Comment"># 因为tornado的IO时间非常宝贵，尽量减少在IO上等待的时间</span>
+<span class="lnr">16 </span>          loadbalance_queue.put((
+<span class="lnr">17 </span>              {<span class="Constant">'head'</span>: <span class="Constant">'add'</span>, <span class="Constant">'body'</span>: body},
+<span class="lnr">18 </span>              self,
+<span class="lnr">19 </span>              message_id
+<span class="lnr">20 </span>          ))
+<span class="lnr">21 </span>
+<span class="lnr">22 </span>      <span class="Comment"># 回调函数，结束当前连接</span>
+<span class="lnr">23 </span>      <span class="Statement">def</span> <span class="Identifier">on_write</span>(self):
+<span class="lnr">24 </span>          self.finish()
+</pre>
+</body>
+</html>

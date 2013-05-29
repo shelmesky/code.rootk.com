@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<META NAME="generator" CONTENT="http://txt2tags.org">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/static/fancy.css">
+<TITLE>CloudManager 性能监控和展示系统</TITLE>
+</HEAD><BODY BGCOLOR="white" TEXT="black">
+<CENTER>
+<H1>CloudManager 性能监控和展示系统</H1>
+<FONT SIZE="4"><I>作者: roy@rootk.com</I></FONT><BR>
+<FONT SIZE="4">2012/10/30</FONT>
+</CENTER>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+  <UL>
+  <LI><A HREF="#toc1">1. 项目介绍</A>
+  <LI><A HREF="#toc2">2. 结构</A>
+    <UL>
+    <LI><A HREF="#toc3">2.1. 结构图</A>
+    <LI><A HREF="#toc4">2.2. 结构说明</A>
+      <UL>
+      <LI><A HREF="#toc5">2.2.1. physical host</A>
+      <LI><A HREF="#toc6">2.2.2. monitor host</A>
+      <LI><A HREF="#toc7">2.2.3. web host</A>
+      </UL>
+    </UL>
+  <LI><A HREF="#toc8">3. 功能说明</A>
+    <UL>
+    <LI><A HREF="#toc9">3.1. 检测</A>
+    <LI><A HREF="#toc10">3.2. 报警</A>
+    <LI><A HREF="#toc11">3.3. 展示</A>
+    </UL>
+  <LI><A HREF="#toc12">4. 功能截图</A>
+    <UL>
+    <LI><A HREF="#toc13">4.1. 主页面</A>
+    <LI><A HREF="#toc14">4.2. 物理主机</A>
+    <LI><A HREF="#toc15">4.3. 性能图表</A>
+    <LI><A HREF="#toc16">4.4. 虚拟机列表</A>
+    <LI><A HREF="#toc17">4.5. 报警列表</A>
+    <LI><A HREF="#toc18">4.6. 任务列表</A>
+    <LI><A HREF="#toc19">4.7. 已分配任务列表</A>
+    <LI><A HREF="#toc20">4.8. 定义SMS发送策略</A>
+    </UL>
+  </UL>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+<A NAME="toc1"></A>
+<H1>1. 项目介绍</H1>
+
+<OL>
+<LI>基于检测虚拟机的TCP/UDP端口，PING和ARP响应来检测虚拟机的网络状态。不需要在虚拟机安装任何agent；
+<LI>基于nagios检测物理机的性能信息，并将rrd性能数据文件传输至WEB主机，使用rrd文件重新画性能图；
+<LI>对于物理机和虚拟机的性能数据，根据实现定义好的阀值，如果超过则使用短信报警；
+<LI>WEB界面提供对性能数据图标的展示、查看报警事件和处理、定义短信发送的规则等。
+</OL>
+
+<A NAME="toc2"></A>
+<H1>2. 结构</H1>
+
+<A NAME="toc3"></A>
+<H2>2.1. 结构图</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/cloudmanager.png" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc4"></A>
+<H2>2.2. 结构说明</H2>
+
+<A NAME="toc5"></A>
+<H3>2.2.1. physical host</H3>
+
+<UL>
+<LI>物理机上运行了多个虚拟主机；
+<LI>物理机在安装了nagios的监控agent；
+</UL>
+
+<A NAME="toc6"></A>
+<H3>2.2.2. monitor host</H3>
+
+<UL>
+<LI>从API接口得到需要检测的任务；
+<LI>检测虚拟机的TCP/UDP端口、PING、和ARP请求的响应；
+<LI>由nagios检测物理机的CPU负载、内存/磁盘使用率等；
+<LI>检测的结果通过发送给WEB Host的API接口；
+<LI>通过python-inotify监视nagios的性能数据文件，如发现文件更新则发送文件到服务器。
+</UL>
+
+<A NAME="toc7"></A>
+<H3>2.2.3. web host</H3>
+
+<UL>
+<LI>API接口接收monitor host发送来的检测结果，并提供接口给monitor host获取任务；
+<LI>WEB用户定义简单的过滤表规则，用来根据报警的详细信息定义接收者；
+<LI>TCP Server监听在6666端口，接收来自monitor host发送来的性能数据文件；
+<LI>定期根据rrd文件和预先定义好的模板生成PNG图片文件。
+</UL>
+
+<A NAME="toc8"></A>
+<H1>3. 功能说明</H1>
+
+<A NAME="toc9"></A>
+<H2>3.1. 检测</H2>
+
+<UL>
+<LI>对于物理机的检测通过nagios，对于虚拟机的检测则检测其TCP/UDP端口、PING、ARP请求的回应；
+<LI>ARP请求的检测使用<A HREF="http://www.secdev.org/projects/scapy/">python-scapy</A>来构造ARP请求，并等待回应；
+<LI>PING检测通过struct构造IP头部(8位类型为8-ICMP, 16位校验和, 16位id, 16位序列)，使用当前时间的UNIX TIMESTAMP格式作为数据，使用SOCKET_RAW方式发送；
+<LI>接收到回应后，提取数据包头部并使用struct解开，找到发送时附带的数据中的时间戳，使用当前的时间戳减去发送时的时间戳，如果成功则表示对方回应了ICMP包；
+<LI>对于UDP端口的检测，原理是发送一个附带任意数据的UDP数据包给对方端口，如果对方UDP端口开放则不会有任何回应。如果没有开放，对于正常的系统则返回一个ICMP类型为13的数据包给发送者，表示端口不可达。但是由于很多系统的防火墙为了防止被探测端口，而设置了不返回这种数据包。所以这种方式检测有一定的概率会不准确；
+<LI>对于TCP端口的检测则使用connect函数，并设置socket的超时时间；
+<LI>在linux平台上使用2.6.13以上内核支持的inotify特性，监控文件系统的变化，例如删除、读写和更新文件信息的操作，并通知调用者。FreeBSD同样提供了类似与inotify的kqueue。python-inotify是inotify的python接口，首先打开需要监视的目录或文件，然后注册感兴趣的事件，并指定事件发生后处理的回调函数，最后启动事件循环。如果有感兴趣的事件发生，inotify会调用相应的回调函数来处理。
+</UL>
+
+<A NAME="toc10"></A>
+<H2>3.2. 报警</H2>
+
+<UL>
+<LI>monitor host监测到的物理机和虚拟机的性能数据，如果达到了预定义的阀值，则会通过API接口发送给web host，后者通过预定义的规则来决定如何处理报警信息。目前是通过SMS网关或者邮件，发送这些报警信息到管理员。
+</UL>
+
+<A NAME="toc11"></A>
+<H2>3.3. 展示</H2>
+
+<UL>
+<LI>WEB界面上展示接收到的报警信息，等待WEB用户的处理，例如忽略或者指定由专人处理；
+<LI>WEB界面上同时提供自定义短信发送策略，可以定义指定某一类的信息(主机、事件类型等)，由某位管理员处理；
+<LI>web host运行一个TCP Server接收来自monitor host发送的nagios性能数据，TCP Server使用python标准库自带的asyncore库，使用select.select或select.poll提供的基于事件触发和非阻塞socket的方式接收数据。接收到数据后，另外一个线程会使用预先定义rrd语法文件，生成png格式的数据图表文件；
+</UL>
+
+<A NAME="toc12"></A>
+<H1>4. 功能截图</H1>
+
+<A NAME="toc13"></A>
+<H2>4.1. 主页面</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/home.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc14"></A>
+<H2>4.2. 物理主机</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/physical_host_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc15"></A>
+<H2>4.3. 性能图表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/performance_report.png" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc16"></A>
+<H2>4.4. 虚拟机列表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/virtualhost_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc17"></A>
+<H2>4.5. 报警列表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/notification_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc18"></A>
+<H2>4.6. 任务列表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/job_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc19"></A>
+<H2>4.7. 已分配任务列表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/dispatched_job_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc20"></A>
+<H2>4.8. 定义SMS发送策略</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmanager/filter_table.jpeg" BORDER="0" ALT="">
+</P>
+
+<!-- html code generated by txt2tags 2.6 (http://txt2tags.org) -->
+<!-- cmdline: txt2tags -t html index.t2t -->
+</BODY></HTML>

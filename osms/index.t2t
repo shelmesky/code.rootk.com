@@ -1,0 +1,96 @@
+OSMS服务器管理系统
+作者: roy@rootk.com
+2012/10/29
+
+
+%!target: html
+%!options: --toc --toc-level 3
+%!encoding: utf-8
+%!style: /static/fancy.css
+
++ 项目介绍 +
+通过在Linux服务器上安装Agent监控端，实现对服务器信息获取、软件安装、SSH登录、系统管理的功能。使用Django 1.3框架和python 2.7；
+
+
++ 结构 +
+
+
+++ 结构图 ++
+[/static/images/osms/OSMS.png]
+
+
+++ 结构说明 ++
+- 每台linux服务器上运行监控端，守候在指定的TCP端口，接收并处理请求；
+- WEB用户通过socket client与agent传输文件、获取服务器信息等；
+- 使用python-paramiko将agent传输到服务器上，并运行；
+- 使用python-pexpect连接到SSH服务器，并使用ajaxterm将终端程序扩展到WEB页面；
+- 使用MySQL做数据持久化。
+
+
++ 功能说明 +
+
+
+++ Agent功能 ++
+- 执行系统命令；
+- 获得系统信息；
+- 多线程执行任务；
+- 上传下载文件；
+- 判断客户端权限。
+
+
+++ WEB客户端 ++
+- 自动安装监控端；
+- 自动判断被监控段是否在线；
+- 自动登录SSH；
+- 发送安装包给被监控端，启用后台线程安装；
+- 管理crontab；
+- 远程关机、重启。
+
+
++ 功能截图 +
+
+
+++ 设备列表 ++
+[/static/images/osms/1.jpeg]
+
+
+++ 自动安装监控端 ++
+[/static/images/osms/2.jpeg]
+[/static/images/osms/3.jpeg]
+
+
+++ 自动登录SSH ++
+[/static/images/osms/4-1.jpeg]
+
+[/static/images/osms/4.jpeg]
+
+
+++ 安装软件包 ++
+[/static/images/osms/5.jpeg]
+
+
+[/static/images/osms/6.jpeg]
+
+
+++ 管理crontab ++
+[/static/images/osms/7.jpeg]
+
+
+++ 关机/重启 ++
+[/static/images/osms/8.jpeg]
+
+
++ 开发过程 +
+- 接到原始需求，主要是将服务器管理方面的常见任务，做到自动化、可视化；
+- 确定使用Django框架，开发平台为linux；
+- 使用C/S模式，Linux服务器运行被监控端，WEB客户端使用socket连接；
+- 实现将监控Agent发送到服务器，并自动运行；
+- 实现被监控端的常见系统信息获取、上传下载文件、运行任务等；
+- 实现WEB客户端的各项功能；
+- 使用python-paramiko通过SSH方式连接到服务器，将打包好的监控Agent发送到服务器，并运行它；
+- 使用python-pexpect连接到SSH服务器，ajaxterm将pexpect的shell程序扩展到WEB页面；
+- 通过上传下载文件管理crontab。
+
+
++ 应用情况 +
+- 展示的版本只是当初开发的一个最初的版本，目前此系统已经在给某在线教育公司做服务器管理，服务器规模为50台左右。

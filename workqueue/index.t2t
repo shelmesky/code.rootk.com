@@ -1,0 +1,67 @@
+云平台试用排队系统
+作者: roy@rootk.com
+2013/03/09
+
+
+%!target: html
+%!options: --toc --toc-level 3
+%!encoding: utf-8
+%!style: ../static/fancy.css
+
+
++ 项目介绍 +
++ 根据有限的资源数量，使用可变的策略来决定请求应该立刻被处理还是排队
++ RESTful接口，可以处理任意类型的请求，不仅限于Openstack
++ 定时器运行于线程中，可精确处理请求
++ MongoDB作为数据持久化，可在队列服务崩溃后从DB中恢复定时器
++ 使用NGINX作为对虚拟机实例的TCP端口映射
+
+
++ 结构图 +
+[/static/images/workqueue/cloudqueue.jpeg]
+
+
++ 结构说明 +
+++ 定时器 ++
+收到请求后，如果请求被处理，则启动定时器。
+定时器到期后，执行指定的动作。
+删除动作完成后，通知另一个在等待的线程，从排队区域取出数据，并执行动作。
+
+
+++ Nginx API ++
+封装NGINX增加TCP负载均衡的接口，并在client和server之间采用UDP多播通讯。
+传输数据使用AES 256加密。
+
+
+++ MongoDB ++
+MongoDB作为保存运行和排队的数据，如果服务器崩溃，或者重启，会从DB中恢复定时器。
+
+
+++ RESTful API ++
+使用Tornado作为RESTful Server，使用GET/POST/PUT/DELETE方法对应相应的动作。
+和CloudOpen之间采用HTTP调用，并使用异步的HTTP客户端。
+防止因为CloudOpen长时间无响应，而阻塞Tornado的主线程。
+
+
+
++ 功能截图 +
+
+
+++ 总览和记录 ++
+[/static/images/workqueue/summary.jpg]
+
+
+++ 申请主机 ++
+[/static/images/workqueue/request.jpg]
+
+
+++ 主机列表 ++
+[/static/images/workqueue/list.jpg]
+
+
+++ 主机详情 ++
+[/static/images/workqueue/detail.jpg]
+
+
++ 目前应用 +
+在嘉值云计算的试用平台上运行[http://try.cloud-open.cn http://try.cloud-open.cn]

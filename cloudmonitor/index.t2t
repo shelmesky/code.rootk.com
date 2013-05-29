@@ -1,0 +1,120 @@
+Cloud Monitor 虚拟机实例负载监控系统
+作者: roy@rootk.com
+2012/10/30
+
+
+%!target: html
+%!options: --toc --toc-level 3
+%!encoding: utf-8
+%!style: /static/fancy.css
+
+
++ 项目介绍 +
++ 基于libvirt的基础上，采集虚拟机实例的CPU负载、网卡传输、磁盘读写等参数，并根据年月日等时间单位生成相应的数据；
++ 使用WEB API的方式提供接口给客户端；
++ 客户端可以设置是否启用某个虚拟机实例的监测功能，并设置功能开启的时间长短；
++ 客户端使用amchart展示性能数据图。
+
+
++ 结构 +
+++ 结构图 ++
+[/static/images/cloudmonitor/cloudmonitor.png]
+
+
+++ 结构说明 ++
++ 配置libvirtd让客户端可以通过tcp协议连接到libvirtd；
++ cloud monitor的daemon在单独的线程中每隔60秒使用python-libvirt连接到libvirtd，取得所有的虚拟机列表，并保存到DB；
++ 另一个线程定时从DB中取得虚拟机列表，通过队列发送到线程池；
++ 线程池为每一个需要获取信息的虚拟机启动一个线程，并获取它的CPU负载等信息。获取到的信息存入到DB；
++ crontab中每隔固定的时间从DB中取得最初采集的数据，生成每小时/天/星期/月/年的数据，并再次存入DB；
++ API Server监听在TCP 8080，提供了数据访问和开启/关闭实例监控的接口；
++ 在WEB端，API Client封装好对API Server的各种接口的访问，方便调用；
++ WEB用户查看数据时，就调用API Client封装好的接口，发起对API Server的访问；
++ API Server返回的数据使用amchart展示在WEB页面上。
+
+
++ 功能说明 +
+++ 监控端 ++
++ libvirt的daemon程序libvirtd监听在tcp 16905端口；
++ cloud monitro的daemon运行在后台，通过tcp连接到libvirtd；
++ 定期采集虚拟机实例的CPU负载、网卡传输、磁盘读写的信息；
++ 采集到的结果经过简单处理保存在MySQL；
++ 有crontab任务，定期从DB中读取数据并按照小时/天/星期/月/年生成相应的数据；
++ API Server提供接口给客户端访问性能数据，并提供开启虚拟机实例监控的接口。
+
+
+++ WEB客户端 ++
++ WEB端通过封装好的API Client连接到API Server，根据用户请求取得相应的数据；
++ 在WEB页面上使用amchart展示性能数据图。
+
+
++ 功能截图 +
+
+++ 启用报表 ++
+[/static/images/cloudmonitor/start_report.jpeg]
+
+++ 启用时限 ++
+[/static/images/cloudmonitor/start_report_time.jpeg]
+
+++ 报表和续订 ++
+[/static/images/cloudmonitor/report_list.jpeg]
+
+++ 报表详情 ++
+[/static/images/cloudmonitor/report_detail.jpeg]
+
+
+
++ 开发过程 +
+
+
+++ 采集服务 ++
+- libvirt是一套完整的对KVM、Xen等底层虚拟化技术提供统一API接口的方案，它提供了C、Python、Ruby等语言的接口；
+- libvirtd是libvirt的daemon程序，可以让libvirt client通过SSH、TCP、TLS和本地访问等方式连接到libvirt提供的接口；
+- python的libvirt库是一个C扩展，上层封装为方便python调用的接口；
+- libvirt和采集服务分布在不同机器上，所以通过TCP方式访问是性能最好的；
+- 从libvirt得到的是CPU使用时间，要转换为CPU负载，需要间隔一定时间采集两次得到CPU时间差，并经过公式计算：100 * cputime / (time_sleep * cores * 1000000000)；
+- 同样的磁盘读写和网卡传输得到也是一个增量值，要得到平均值需要采集两次并计算差值；
+- 采集到的原始信息出入到DB。
+
+
+++ 生成报表数据 ++
+- 采用[amcharts 2.0 http://www.amcharts.com/]作为报表的页面展示，amchart是一个javascript驱动的图表展示组件，支持柱状图、条形图、线形图、面积图等等；
+- 采用普通的线形图；
+- 在django的模板内嵌入[amcharts http://www.amcharts.com/]。
+
+
+++ API Server ++
+- 使用[web.py http://webpy.org/]作为web api server；
+- 使用mimerender装饰每个url handler，返回内容为json格式；
+- 使用gevent的多进程模式驱动web.py；
+- 提供对性能数据的获取、启用/关闭报表功能等接口。
+
+
+++ WEB端 ++
+- 使用httplib2作为客户端；
+- 封装对API Server的接口；
+- 使用twitter出品的[bootstrap https://github.com/twitter/bootstrap]和jquery作为前端的支持库。
+
+
++ 代码片段 +
+
+
+++ 采集服务 ++
+{% include 'libvirt.py.html' %}
+
+
+++ API接口 ++
+
+
++++ token实现 +++
+验证token的装饰器代码：
+{% include 'token.py.html' %}
+
+
++++ 请求处理 +++
+{% include 'request_handler.py.html' %}
+
+
++ 应用情况 +
+- 目前应用在[cloudopen http://try.cloud-open.cn]上；
+- 被上海电信、IDC客户使用，客户反响不错。

@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<META NAME="generator" CONTENT="http://txt2tags.org">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/static/fancy.css">
+<TITLE>基于Openstack Nova的自动扩展和负载均衡</TITLE>
+</HEAD><BODY BGCOLOR="white" TEXT="black">
+<CENTER>
+<H1>基于Openstack Nova的自动扩展和负载均衡</H1>
+<FONT SIZE="4"><I>作者: roy@rootk.com</I></FONT><BR>
+<FONT SIZE="4">2012/11/03</FONT>
+</CENTER>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+  <UL>
+  <LI><A HREF="#toc1">1. 项目介绍</A>
+  <LI><A HREF="#toc2">2. 结构</A>
+    <UL>
+    <LI><A HREF="#toc3">2.1. 结构图</A>
+    <LI><A HREF="#toc4">2.2. 结构说明</A>
+      <UL>
+      <LI><A HREF="#toc5">2.2.1. RabbitMQ</A>
+      <LI><A HREF="#toc6">2.2.2. Monitor</A>
+      <LI><A HREF="#toc7">2.2.3. Server</A>
+      <LI><A HREF="#toc8">2.2.4. Agent</A>
+      </UL>
+    </UL>
+  <LI><A HREF="#toc9">3. 功能说明</A>
+    <UL>
+    <LI><A HREF="#toc10">3.1. 监控</A>
+    <LI><A HREF="#toc11">3.2. 创建虚拟机</A>
+    <LI><A HREF="#toc12">3.3. 创建负载均衡主机</A>
+    <LI><A HREF="#toc13">3.4. API接口</A>
+    </UL>
+  <LI><A HREF="#toc14">4. 开发过程</A>
+    <UL>
+    <LI><A HREF="#toc15">4.1. Monitor</A>
+    <LI><A HREF="#toc16">4.2. Server</A>
+      <UL>
+      <LI><A HREF="#toc17">4.2.1. 发送消息</A>
+      <LI><A HREF="#toc18">4.2.2. 接收及处理</A>
+      <LI><A HREF="#toc19">4.2.3. 持久化</A>
+      </UL>
+    <LI><A HREF="#toc20">4.3. Agent</A>
+      <UL>
+      <LI><A HREF="#toc21">4.3.1. 封装Nginx操作</A>
+      <LI><A HREF="#toc22">4.3.2. 接收消息</A>
+      </UL>
+    </UL>
+  <LI><A HREF="#toc23">5. 代码片段</A>
+    <UL>
+    <LI><A HREF="#toc24">5.1. 发送消息</A>
+    <LI><A HREF="#toc25">5.2. 接收消息</A>
+    <LI><A HREF="#toc26">5.3. Tornado的Request Handler</A>
+    </UL>
+  <LI><A HREF="#toc27">6. 功能截图</A>
+    <UL>
+    <LI><A HREF="#toc28">6.1. 增加监控虚拟机</A>
+    <LI><A HREF="#toc29">6.2. 增加HTTP负载均衡服务</A>
+    <LI><A HREF="#toc30">6.3. 增加TCP负载均衡服务</A>
+    <LI><A HREF="#toc31">6.4. 负载均衡主机列表</A>
+    </UL>
+  </UL>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+<A NAME="toc1"></A>
+<H1>1. 项目介绍</H1>
+
+<OL>
+<LI>OpenStack 是由 Rackspace 和 NASA 共同开发的云计算平台，帮助服务商和企业内部实现类似于 Amazon EC2 和 S3 的云基础架构服务(Infrastructure as a Service, IaaS)。
+<LI>Nova用于为单个用户或使用群组启动虚拟机实例。
+<LI>在Nova的基础上，监测虚拟机的性能负载，根据策略自动生成新的虚拟机实例。并自动将原虚拟机上运行的服务，使用负载均衡器分配到多台虚拟机上。
+</OL>
+
+<A NAME="toc2"></A>
+<H1>2. 结构</H1>
+
+<A NAME="toc3"></A>
+<H2>2.1. 结构图</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudloadbalance/cloud_loadbalance.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc4"></A>
+<H2>2.2. 结构说明</H2>
+
+<A NAME="toc5"></A>
+<H3>2.2.1. RabbitMQ</H3>
+
+<OL>
+<LI>RabbitMQ做为整个系统的消息中枢，Server、Agent、Monitor等组件通过RabbitMQ传递消息。
+<LI>使用fanout类型的exchange，消息队列持久化。
+<LI>各个组件之间采用json格式传递消息
+</OL>
+
+<A NAME="toc6"></A>
+<H3>2.2.2. Monitor</H3>
+
+<OL>
+<LI>从Server获取需要监控的虚拟机列表。
+<LI>每次启动时都从Server获取最新的列表，自身并不将列表持久化到外部存储上。
+<LI>在内存中维护这个列表，并在消息队列的Consumer一端守候，接收新的虚拟机UUID，并把它加入这个列表。
+<LI>监控列表中虚拟机的CPU负载，如果某个虚拟机达到了预订的阀值，则会将它的UUID发送给Server。
+</OL>
+
+<A NAME="toc7"></A>
+<H3>2.2.3. Server</H3>
+
+<OL>
+<LI>提供HTTP API接口，增加/删除需要负载均衡的虚拟机实例、负载均衡服务，增加/删除域名，提供管理员接口监视系统信息等。
+<LI>提供接口给Monitor获取需要监控的虚拟机实例列表；
+<LI>接收来自Monitor的消息；
+<LI>调用nova创建新的虚拟机，并得到新虚拟机的IP地址；
+<LI>查询数据库中用户预先定义的负载均衡服务(HTTP/TCP负载均衡)，如果是HTTP类型的主机则调用DNS Server的接口创建新域名；
+<LI>查询每条记录中是否有AgentID，有则说明已经创建过，直接使用已有的Agent ID。如果没有则使用调度器选择一台Agent；
+<LI>加载负载均衡服务的模板，并用所有虚拟机的IP地址和用户的预定义的端口创建Nginx负载均衡；
+<LI>生成唯一的消息ID，最总将消息通过RabbitMQ发送给Agent。
+</OL>
+
+<A NAME="toc8"></A>
+<H3>2.2.4. Agent</H3>
+
+<OL>
+<LI>封装对Nginx的操作，如增加/删除负载均衡主机、reload nginx；
+<LI>守候在RabbitMQ队列的Consumer一端，接收来自Server的消息；
+<LI>调用Nginx的接口，完成对负载均衡主机的添加；
+<LI>返回结果并填充消息，通过RabbitMQ发送给Server；
+</OL>
+
+<A NAME="toc9"></A>
+<H1>3. 功能说明</H1>
+
+<A NAME="toc10"></A>
+<H2>3.1. 监控</H2>
+
+<UL>
+<LI>从Server获取监控列表的虚拟机列表；
+<LI>监视虚拟机的CPU负载，达到预设阀值则通知Server。
+</UL>
+
+<A NAME="toc11"></A>
+<H2>3.2. 创建虚拟机</H2>
+
+<UL>
+<LI>调用Nova的接口创建虚拟机，等待并获取新虚拟机的IP地址；
+</UL>
+
+<A NAME="toc12"></A>
+<H2>3.3. 创建负载均衡主机</H2>
+
+<UL>
+<LI>加载模板，用原虚拟机和新虚拟机的IP地址填充模板；
+<LI>发送渲染完成的模板内容发送到Agent。
+</UL>
+
+<A NAME="toc13"></A>
+<H2>3.4. API接口</H2>
+
+<UL>
+<LI>提供增加/删除监视虚拟机、增加/删除负载均衡服务的接口；
+<LI>提供管理员接口，查看整个系统的状态。
+</UL>
+
+<A NAME="toc14"></A>
+<H1>4. 开发过程</H1>
+
+<A NAME="toc15"></A>
+<H2>4.1. Monitor</H2>
+
+<UL>
+<LI>在cloud monitor的基础上，增加过滤接口，并从Server得到的虚拟机的UUID列表；
+<LI>当CPU负载超过时，使用消息队列将UUID发送给Server。
+</UL>
+
+<A NAME="toc16"></A>
+<H2>4.2. Server</H2>
+
+<A NAME="toc17"></A>
+<H3>4.2.1. 发送消息</H3>
+
+<UL>
+<LI>基于回调的风格开发；
+<LI>使用python-pika库作为RabbitMQ的客户端，使用非阻塞的方式连接；
+<LI>与Agent的通信采用固定格式的JSON消息，消息中携带message id；
+<LI>因为RabbitMQ的队列均为单工通信，无确认机制(无法从消息层面确认对方已经收到消息，即对方何时接收消息以及是否接收消息，RabbitMQ不关心)；
+</UL>
+
+<A NAME="toc18"></A>
+<H3>4.2.2. 接收及处理</H3>
+
+<UL>
+<LI>message id在一次完整的和Agent通信的过程中使用，即发送给Agent的消息和从Agent返回的消息中均为同一个message id；
+<LI>使用Tornado web server作为API Server；
+<LI>因为Tornado为单线程，基于事件的非阻塞服务器，故在Request Handler中不能阻塞当前线程；
+<LI>对于和Agent的通信，以及向数据库添加/删除/修改内容都通过单独的线程，阻塞在python的队列上并等待任务。Tornado的Request Handler通过python的队列和这些线程通信，并将每个实例化的Request Handler和一个唯一的message id通过python的队列发送给线程；
+<LI>每个工作线程维护自己的回调字典，对于从Agent返回的消息，根据返回消息中的message id，调用对应的Request Handler的write函数，完成Request Handler；
+</UL>
+
+<A NAME="toc19"></A>
+<H3>4.2.3. 持久化</H3>
+
+<UL>
+<LI>使用SQLAlchemy作为ORM层；
+<LI>为每个表做独立的model；
+<LI>工作在线程安全模式；
+<LI>由独立的线程调用。
+</UL>
+
+<A NAME="toc20"></A>
+<H2>4.3. Agent</H2>
+
+<A NAME="toc21"></A>
+<H3>4.3.1. 封装Nginx操作</H3>
+
+<UL>
+<LI>封装对Nginx增加/删除负载均衡主机的操作，增强对异常的判断；
+<LI>尽量完备的异常处理机制。
+</UL>
+
+<A NAME="toc22"></A>
+<H3>4.3.2. 接收消息</H3>
+
+<UL>
+<LI>使用python-pika作为RabbitMQ的客户端，使用非阻塞的方式连接；
+<LI>分析来自Server的消息，对于增加/删除操作，调用对应的函数。
+</UL>
+
+<A NAME="toc23"></A>
+<H1>5. 代码片段</H1>
+
+<A NAME="toc24"></A>
+<H2>5.1. 发送消息</H2>
+
+<P>
+{% include 'sender.html' %}
+</P>
+
+<A NAME="toc25"></A>
+<H2>5.2. 接收消息</H2>
+
+<P>
+{% include 'receiver.html' %}
+</P>
+
+<A NAME="toc26"></A>
+<H2>5.3. Tornado的Request Handler</H2>
+
+<P>
+{% include 'request_handler.html' %}
+</P>
+
+<A NAME="toc27"></A>
+<H1>6. 功能截图</H1>
+
+<A NAME="toc28"></A>
+<H2>6.1. 增加监控虚拟机</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudloadbalance/enable_loadbalance.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc29"></A>
+<H2>6.2. 增加HTTP负载均衡服务</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudloadbalance/add_httphost.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc30"></A>
+<H2>6.3. 增加TCP负载均衡服务</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudloadbalance/add_tcphost.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc31"></A>
+<H2>6.4. 负载均衡主机列表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudloadbalance/host_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<!-- html code generated by txt2tags 2.6 (http://txt2tags.org) -->
+<!-- cmdline: txt2tags -t html index.t2t -->
+</BODY></HTML>

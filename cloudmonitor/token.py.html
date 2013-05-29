@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/classifier-V2.py.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v10">
+<meta name="syntax" content="python">
+<meta name="settings" content="number_lines,use_css,pre_wrap,expand_tabs">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.lnr { color: #a52a2a; }
+.Type { color: #2e8b57; font-weight: bold; }
+.Constant { color: #ff00ff; }
+.Identifier { color: #008b8b; }
+.Statement { color: #a52a2a; font-weight: bold; }
+.Comment { color: #0000ff; }
+-->
+</style>
+</head>
+<body>
+<pre>
+<span class="lnr"> 1 </span>  <span class="Comment"># 外层函数</span>
+<span class="lnr"> 2 </span>  <span class="Statement">def</span> <span class="Identifier">require_login</span>(func):
+<span class="lnr"> 3 </span>      <span class="Comment"># 内层装饰器</span>
+<span class="lnr"> 4 </span>      <span class="Statement">def</span> <span class="Identifier">proxy</span>(self,*args,**kw):
+<span class="lnr"> 5 </span>          <span class="Statement">try</span>:
+<span class="lnr"> 6 </span>              token =  _web.<span class="Identifier">input</span>()[<span class="Constant">'token'</span>]
+<span class="lnr"> 7 </span>          <span class="Statement">except</span> <span class="Type">KeyError</span>:
+<span class="lnr"> 8 </span>              <span class="Statement">return</span> {<span class="Constant">'message'</span>: <span class="Constant">'not_login'</span>}
+<span class="lnr"> 9 </span>          <span class="Statement">else</span>:
+<span class="lnr">10 </span>              <span class="Statement">for</span> line <span class="Statement">in</span> tokens.get_all_tokens():
+<span class="lnr">11 </span>                  <span class="Comment"># 如果token验证成功则返回被装饰的函数</span>
+<span class="lnr">12 </span>                  <span class="Statement">if</span> token == line[<span class="Constant">'token'</span>]:
+<span class="lnr">13 </span>                      <span class="Statement">if</span> <span class="Statement">not</span> tokens.update_token(token):
+<span class="lnr">14 </span>                          <span class="Statement">return</span> {<span class="Constant">'message'</span>: <span class="Constant">'token_timeout'</span>}
+<span class="lnr">15 </span>                      <span class="Statement">return</span> func(self, *args, **kw)
+<span class="lnr">16 </span>              <span class="Statement">return</span> {<span class="Constant">'message'</span>: <span class="Constant">'incorrect_token'</span>}
+<span class="lnr">17 </span>      <span class="Statement">return</span> proxy
+<span class="lnr">18 </span>
+</pre>
+</body>
+</html>

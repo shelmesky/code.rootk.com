@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/classifier-V2.py.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v10">
+<meta name="syntax" content="python">
+<meta name="settings" content="number_lines,use_css,pre_wrap,expand_tabs">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.lnr { color: #a52a2a; }
+.Comment { color: #0000ff; }
+.Constant { color: #ff00ff; }
+.Identifier { color: #008b8b; }
+.Statement { color: #a52a2a; font-weight: bold; }
+-->
+</style>
+</head>
+<body>
+<pre>
+<span class="lnr">  1 </span><span class="Statement">class</span> <span class="Identifier">AdminReceiver</span>(threading.Thread):
+<span class="lnr">  2 </span>      <span class="Constant">&quot;&quot;&quot;</span>
+<span class="lnr">  3 </span><span class="Constant">      main class of server, singleton model.</span>
+<span class="lnr">  4 </span><span class="Constant">      &quot;&quot;&quot;</span>
+<span class="lnr">  5 </span>
+<span class="lnr">  6 </span>      _instance = <span class="Identifier">None</span>
+<span class="lnr">  7 </span>      _lock = lock <span class="Statement">or</span> threading.Lock()
+<span class="lnr">  8 </span>
+<span class="lnr">  9 </span>      <span class="Statement">def</span> <span class="Identifier">__new__</span>(cls, *args, **kwargs):
+<span class="lnr"> 10 </span>          <span class="Constant">&quot;&quot;&quot;</span>
+<span class="lnr"> 11 </span><span class="Constant">          singleton model</span>
+<span class="lnr"> 12 </span><span class="Constant">          &quot;&quot;&quot;</span>
+<span class="lnr"> 13 </span>          <span class="Comment"># 以线程安全的方式实现单例模式</span>
+<span class="lnr"> 14 </span>          AdminReceiver._lock.acquire()
+<span class="lnr"> 15 </span>          <span class="Statement">if</span> <span class="Statement">not</span> cls._instance:
+<span class="lnr"> 16 </span>              cls._instance = <span class="Identifier">super</span>(AdminReceiver,cls).__new__(
+<span class="lnr"> 17 </span>                  cls, *args, **kwargs)
+<span class="lnr"> 18 </span>          AdminReceiver._lock.release()
+<span class="lnr"> 19 </span>          <span class="Statement">return</span> cls._instance
+<span class="lnr"> 20 </span>
+<span class="lnr"> 21 </span>      <span class="Statement">def</span> <span class="Identifier">__init__</span>(self):
+<span class="lnr"> 22 </span>          <span class="Identifier">super</span>(AdminReceiver,self).__init__()
+<span class="lnr"> 23 </span>          self.daemon = <span class="Identifier">True</span>
+<span class="lnr"> 24 </span>          self.node_map = node_map
+<span class="lnr"> 25 </span>          self.callback_map = callback_map
+<span class="lnr"> 26 </span>          self.connect()
+<span class="lnr"> 27 </span>
+<span class="lnr"> 28 </span>      <span class="Statement">def</span> <span class="Identifier">connect</span>(self):
+<span class="lnr"> 29 </span>          <span class="Constant">&quot;&quot;&quot;</span>
+<span class="lnr"> 30 </span><span class="Constant">          connect to rabbitmq server and declare exchange and queue.</span>
+<span class="lnr"> 31 </span><span class="Constant">          &quot;&quot;&quot;</span>
+<span class="lnr"> 32 </span>          parameters = pika.ConnectionParameters(virtual_host=virtual_host,
+<span class="lnr"> 33 </span>                          credentials=pika.PlainCredentials(username,password),
+<span class="lnr"> 34 </span>                          frame_max=frame_max_size,
+<span class="lnr"> 35 </span>                          host=rabbitmq_server)
+<span class="lnr"> 36 </span>
+<span class="lnr"> 37 </span>          select_connection.POLLER_TYPE = <span class="Constant">'epoll'</span>
+<span class="lnr"> 38 </span>          self.connection_server = select_connection.SelectConnection(parameters=parameters,
+<span class="lnr"> 39 </span>                                                          on_open_callback=self.on_connected)
+<span class="lnr"> 40 </span>
+<span class="lnr"> 41 </span>      <span class="Statement">def</span> <span class="Identifier">run</span>(self):
+<span class="lnr"> 42 </span>          <span class="Constant">&quot;&quot;&quot;</span>
+<span class="lnr"> 43 </span><span class="Constant">          start event loop, and wait for message from agent.</span>
+<span class="lnr"> 44 </span><span class="Constant">          &quot;&quot;&quot;</span>
+<span class="lnr"> 45 </span>          self.connection_server.ioloop.start()
+<span class="lnr"> 46 </span>
+<span class="lnr"> 47 </span>      <span class="Statement">def</span> <span class="Identifier">on_connected</span>(self,connection):
+<span class="lnr"> 48 </span>          connection.channel(self.on_channel_open)
+<span class="lnr"> 49 </span>
+<span class="lnr"> 50 </span>      <span class="Statement">def</span> <span class="Identifier">on_channel_open</span>(self,channel_):
+<span class="lnr"> 51 </span>          self.channel_server = channel_
+<span class="lnr"> 52 </span>          self.channel_server.exchange_declare(exchange=<span class="Constant">'loadbalance.server'</span>,
+<span class="lnr"> 53 </span>                                               <span class="Identifier">type</span>=<span class="Constant">'fanout'</span>,durable=<span class="Identifier">True</span>,
+<span class="lnr"> 54 </span>                                               callback=self.on_exchange_declared)
+<span class="lnr"> 55 </span>
+<span class="lnr"> 56 </span>      <span class="Statement">def</span> <span class="Identifier">on_exchange_declared</span>(self,exchange_):
+<span class="lnr"> 57 </span>          self.channel_server.queue_declare(durable=<span class="Identifier">False</span>, exclusive=<span class="Identifier">True</span>,
+<span class="lnr"> 58 </span>                                            callback=self.on_queue_declared)
+<span class="lnr"> 59 </span>
+<span class="lnr"> 60 </span>      <span class="Statement">def</span> <span class="Identifier">on_queue_declared</span>(self,result):
+<span class="lnr"> 61 </span>          self.queue_name = result.method.queue
+<span class="lnr"> 62 </span>          self.channel_server.queue_bind(exchange=<span class="Constant">'loadbalance.server'</span>,
+<span class="lnr"> 63 </span>                                         queue=self.queue_name,
+<span class="lnr"> 64 </span>                                      callback=self.on_queue_bind)
+<span class="lnr"> 65 </span>
+<span class="lnr"> 66 </span>      <span class="Statement">def</span> <span class="Identifier">on_queue_bind</span>(self,frame):
+<span class="lnr"> 67 </span>          self.channel_server.basic_consume(self.handle_delivery,
+<span class="lnr"> 68 </span>                        queue=self.queue_name)
+<span class="lnr"> 69 </span>
+<span class="lnr"> 70 </span>      <span class="Statement">def</span> <span class="Identifier">handle_delivery</span>(self, ch, method, header, body):
+<span class="lnr"> 71 </span>          <span class="Constant">&quot;&quot;&quot;</span>
+<span class="lnr"> 72 </span><span class="Constant">          callback function that will receive return message from remote agent.</span>
+<span class="lnr"> 73 </span><span class="Constant">          &quot;&quot;&quot;</span>
+<span class="lnr"> 74 </span>          body = simplejson.loads(body)
+<span class="lnr"> 75 </span>          message_type = body[<span class="Constant">'message_type'</span>]
+<span class="lnr"> 76 </span>
+<span class="lnr"> 77 </span>          <span class="Statement">if</span> message_type == <span class="Constant">&quot;heartbeat&quot;</span>:
+<span class="lnr"> 78 </span>              NodeList_Thread.process_online(body)
+<span class="lnr"> 79 </span>              heartbeat_queue.put_nowait(body)
+<span class="lnr"> 80 </span>
+<span class="lnr"> 81 </span>          <span class="Statement">if</span> message_type == <span class="Constant">&quot;work_report&quot;</span>:
+<span class="lnr"> 82 </span>              msg_id = body[<span class="Constant">'message_id'</span>]
+<span class="lnr"> 83 </span>              host_queue.put_nowait(body)
+<span class="lnr"> 84 </span>
+<span class="lnr"> 85 </span>              <span class="Comment">#logger.debug(&quot;receive: %s&quot; % body)</span>
+<span class="lnr"> 86 </span>
+<span class="lnr"> 87 </span>              <span class="Comment"># 如果返回的消息中的消息ID存在于回调字典中，就调用对应的回调函数 </span>
+<span class="lnr"> 88 </span>              <span class="Statement">if</span> msg_id <span class="Statement">in</span> self.callback_map:
+<span class="lnr"> 89 </span>                  obj = self.callback_map.pop(msg_id)
+<span class="lnr"> 90 </span>                  invoke_type = <span class="Identifier">getattr</span>(obj,<span class="Constant">'invoke_type'</span>,<span class="Identifier">None</span>)
+<span class="lnr"> 91 </span>                  <span class="Statement">if</span> <span class="Statement">not</span> invoke_type:
+<span class="lnr"> 92 </span>                      <span class="Statement">if</span> <span class="Statement">not</span> obj.request.connection.stream.closed():
+<span class="lnr"> 93 </span>                          obj.write(body)
+<span class="lnr"> 94 </span>                          <span class="Comment"># 因为tornado是单线程服务器，故需要将控制流传回到tornado，并执行回调</span>
+<span class="lnr"> 95 </span>                          tornado.ioloop.IOLoop.instance().add_callback(obj.on_write)
+<span class="lnr"> 96 </span>                  <span class="Statement">elif</span> invoke_type == <span class="Constant">&quot;delete_host&quot;</span>:
+<span class="lnr"> 97 </span>                      obj.add_host(body)
+<span class="lnr"> 98 </span>                  <span class="Statement">elif</span> invoke_type == <span class="Constant">&quot;add_host&quot;</span>:
+<span class="lnr"> 99 </span>                      obj.update_lbhost(body)
+<span class="lnr">100 </span>
+<span class="lnr">101 </span>          ch.basic_ack(delivery_tag = method.delivery_tag)
+</pre>
+</body>
+</html>

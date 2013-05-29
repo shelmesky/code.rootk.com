@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/classifier-V2.py.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v10">
+<meta name="syntax" content="python">
+<meta name="settings" content="number_lines,use_css,pre_wrap,expand_tabs">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.lnr { color: #a52a2a; }
+.Type { color: #2e8b57; font-weight: bold; }
+.Constant { color: #ff00ff; }
+.PreProc { color: #a020f0; }
+.Comment { color: #0000ff; }
+.Identifier { color: #008b8b; }
+.Statement { color: #a52a2a; font-weight: bold; }
+-->
+</style>
+</head>
+<body>
+<pre>
+<span class="lnr"> 1 </span><span class="Statement">class</span> <span class="Identifier">setInterval</span>():
+<span class="lnr"> 2 </span>      <span class="Comment"># 装饰返回结果</span>
+<span class="lnr"> 3 </span>      <span class="PreProc">@</span><span class="Identifier">mimerender</span>(
+<span class="lnr"> 4 </span>          default = <span class="Constant">'json'</span>,
+<span class="lnr"> 5 </span>          html = render_html,
+<span class="lnr"> 6 </span>          xml  = render_xml,
+<span class="lnr"> 7 </span>          json = render_json,
+<span class="lnr"> 8 </span>          txt  = render_txt
+<span class="lnr"> 9 </span>      )
+<span class="lnr">10 </span>      <span class="Comment"># 验证token</span>
+<span class="lnr">11 </span>      <span class="PreProc">@</span><span class="Identifier">require_login</span>
+<span class="lnr">12 </span>      <span class="Statement">def</span> <span class="Identifier">POST</span>(self):
+<span class="lnr">13 </span>          table=<span class="Constant">'cloud_config'</span>
+<span class="lnr">14 </span>          data = _web.<span class="Identifier">input</span>()
+<span class="lnr">15 </span>          <span class="Statement">try</span>:
+<span class="lnr">16 </span>              interval = data.interval
+<span class="lnr">17 </span>          <span class="Statement">except</span> <span class="Type">AttributeError</span>:
+<span class="lnr">18 </span>              <span class="Statement">return</span> {<span class="Constant">'message'</span>: <span class="Constant">'failed'</span>}
+<span class="lnr">19 </span>          <span class="Statement">if</span> <span class="Statement">not</span> <span class="Identifier">int</span>(interval)&gt;<span class="Constant">0</span> <span class="Statement">or</span> <span class="Statement">not</span> <span class="Identifier">int</span>(interval)&lt;<span class="Constant">3600</span>: <span class="Statement">return</span> {<span class="Constant">'message'</span>:<span class="Constant">'failed'</span>}
+<span class="lnr">20 </span>          db.update(table,where=<span class="Constant">&quot;`key`='interval'&quot;</span>,value=interval)
+<span class="lnr">21 </span>          <span class="Statement">return</span> {<span class="Constant">'message'</span>:<span class="Constant">'success'</span>}
+<span class="lnr">22 </span>
+</pre>
+</body>
+</html>

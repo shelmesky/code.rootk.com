@@ -1,0 +1,93 @@
+CloudManager 性能监控和展示系统
+作者: roy@rootk.com
+2012/10/30
+
+
+%!target: html
+%!options: --toc --toc-level 3
+%!encoding: utf-8
+%!style: /static/fancy.css
+
+
++ 项目介绍 +
+
++ 基于检测虚拟机的TCP/UDP端口，PING和ARP响应来检测虚拟机的网络状态。不需要在虚拟机安装任何agent；
++ 基于nagios检测物理机的性能信息，并将rrd性能数据文件传输至WEB主机，使用rrd文件重新画性能图；
++ 对于物理机和虚拟机的性能数据，根据实现定义好的阀值，如果超过则使用短信报警；
++ WEB界面提供对性能数据图标的展示、查看报警事件和处理、定义短信发送的规则等。
+
+
++ 结构 +
+
+++ 结构图++
+[/static/images/cloudmanager/cloudmanager.png]
+
+++ 结构说明 ++
++++ physical host +++
+- 物理机上运行了多个虚拟主机；
+- 物理机在安装了nagios的监控agent；
+
+
++++ monitor host +++
+- 从API接口得到需要检测的任务；
+- 检测虚拟机的TCP/UDP端口、PING、和ARP请求的响应；
+- 由nagios检测物理机的CPU负载、内存/磁盘使用率等；
+- 检测的结果通过发送给WEB Host的API接口；
+- 通过python-inotify监视nagios的性能数据文件，如发现文件更新则发送文件到服务器。
+
+
++++ web host +++
+- API接口接收monitor host发送来的检测结果，并提供接口给monitor host获取任务；
+- WEB用户定义简单的过滤表规则，用来根据报警的详细信息定义接收者；
+- TCP Server监听在6666端口，接收来自monitor host发送来的性能数据文件；
+- 定期根据rrd文件和预先定义好的模板生成PNG图片文件。
+
+
++ 功能说明 +
+++ 检测 ++
+- 对于物理机的检测通过nagios，对于虚拟机的检测则检测其TCP/UDP端口、PING、ARP请求的回应；
+- ARP请求的检测使用[python-scapy http://www.secdev.org/projects/scapy/]来构造ARP请求，并等待回应；
+- PING检测通过struct构造IP头部(8位类型为8-ICMP, 16位校验和, 16位id, 16位序列)，使用当前时间的UNIX TIMESTAMP格式作为数据，使用SOCKET_RAW方式发送；
+- 接收到回应后，提取数据包头部并使用struct解开，找到发送时附带的数据中的时间戳，使用当前的时间戳减去发送时的时间戳，如果成功则表示对方回应了ICMP包；
+- 对于UDP端口的检测，原理是发送一个附带任意数据的UDP数据包给对方端口，如果对方UDP端口开放则不会有任何回应。如果没有开放，对于正常的系统则返回一个ICMP类型为13的数据包给发送者，表示端口不可达。但是由于很多系统的防火墙为了防止被探测端口，而设置了不返回这种数据包。所以这种方式检测有一定的概率会不准确；
+- 对于TCP端口的检测则使用connect函数，并设置socket的超时时间；
+- 在linux平台上使用2.6.13以上内核支持的inotify特性，监控文件系统的变化，例如删除、读写和更新文件信息的操作，并通知调用者。FreeBSD同样提供了类似与inotify的kqueue。python-inotify是inotify的python接口，首先打开需要监视的目录或文件，然后注册感兴趣的事件，并指定事件发生后处理的回调函数，最后启动事件循环。如果有感兴趣的事件发生，inotify会调用相应的回调函数来处理。
+
+
+++ 报警 ++
+- monitor host监测到的物理机和虚拟机的性能数据，如果达到了预定义的阀值，则会通过API接口发送给web host，后者通过预定义的规则来决定如何处理报警信息。目前是通过SMS网关或者邮件，发送这些报警信息到管理员。
+
+
+++ 展示 ++
+- WEB界面上展示接收到的报警信息，等待WEB用户的处理，例如忽略或者指定由专人处理；
+- WEB界面上同时提供自定义短信发送策略，可以定义指定某一类的信息(主机、事件类型等)，由某位管理员处理；
+- web host运行一个TCP Server接收来自monitor host发送的nagios性能数据，TCP Server使用python标准库自带的asyncore库，使用select.select或select.poll提供的基于事件触发和非阻塞socket的方式接收数据。接收到数据后，另外一个线程会使用预先定义rrd语法文件，生成png格式的数据图表文件；
+
+
++ 功能截图 +
+
+++ 主页面 ++
+[/static/images/cloudmanager/home.jpeg]
+
+++ 物理主机 ++
+[/static/images/cloudmanager/physical_host_list.jpeg]
+
+++ 性能图表 ++
+[/static/images/cloudmanager/performance_report.png]
+
+++ 虚拟机列表 ++
+[/static/images/cloudmanager/virtualhost_list.jpeg]
+
+++ 报警列表 ++
+[/static/images/cloudmanager/notification_list.jpeg]
+
+++ 任务列表 ++
+[/static/images/cloudmanager/job_list.jpeg]
+
+++ 已分配任务列表 ++
+[/static/images/cloudmanager/dispatched_job_list.jpeg]
+
+++ 定义SMS发送策略 ++
+[/static/images/cloudmanager/filter_table.jpeg]
+
+

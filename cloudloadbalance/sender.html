@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/classifier-V2.py.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v10">
+<meta name="syntax" content="python">
+<meta name="settings" content="number_lines,use_css,pre_wrap,expand_tabs">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.lnr { color: #a52a2a; }
+.Constant { color: #ff00ff; }
+.Comment { color: #0000ff; }
+.Identifier { color: #008b8b; }
+.Statement { color: #a52a2a; font-weight: bold; }
+-->
+</style>
+</head>
+<body>
+<pre>
+<span class="lnr"> 1 </span><span class="Statement">class</span> <span class="Identifier">AdminSender</span>(threading.Thread):
+<span class="lnr"> 2 </span>      <span class="Statement">def</span> <span class="Identifier">__init__</span>(self,queue):
+<span class="lnr"> 3 </span>          <span class="Identifier">super</span>(AdminSender,self).__init__()
+<span class="lnr"> 4 </span>          self.daemon = <span class="Identifier">True</span>
+<span class="lnr"> 5 </span>          self.queue = queue
+<span class="lnr"> 6 </span>          self.callback_map = callback_map
+<span class="lnr"> 7 </span>          self.connect()
+<span class="lnr"> 8 </span>
+<span class="lnr"> 9 </span>      <span class="Statement">def</span> <span class="Identifier">connect</span>(self):
+<span class="lnr">10 </span>          <span class="Comment"># 连接参数</span>
+<span class="lnr">11 </span>          parameters = pika.ConnectionParameters(virtual_host=virtual_host,
+<span class="lnr">12 </span>                          credentials=pika.PlainCredentials(username,password),frame_max=frame_max_size,
+<span class="lnr">13 </span>                          host=rabbitmq_server)
+<span class="lnr">14 </span>          <span class="Comment"># 调度器为epoll </span>
+<span class="lnr">15 </span>          select_connection.POLLER_TYPE = <span class="Constant">'epoll'</span>
+<span class="lnr">16 </span>          self.connection_agent = select_connection.SelectConnection(parameters=parameters, on_open_callback=self.on_connected)
+<span class="lnr">17 </span>
+<span class="lnr">18 </span>      <span class="Statement">def</span> <span class="Identifier">run</span>(self):
+<span class="lnr">19 </span>          <span class="Comment"># 启动事件循环</span>
+<span class="lnr">20 </span>          self.connection_agent.ioloop.start()
+<span class="lnr">21 </span>
+<span class="lnr">22 </span>      <span class="Comment"># 建立channel</span>
+<span class="lnr">23 </span>      <span class="Statement">def</span> <span class="Identifier">on_connected</span>(self,connection):
+<span class="lnr">24 </span>          connection.set_backpressure_multiplier(<span class="Constant">20000</span>)
+<span class="lnr">25 </span>          connection.channel(self.on_channel_open)
+<span class="lnr">26 </span>
+<span class="lnr">27 </span>      <span class="Comment"># 声明exchange</span>
+<span class="lnr">28 </span>      <span class="Statement">def</span> <span class="Identifier">on_channel_open</span>(self,channel):
+<span class="lnr">29 </span>          self.channel_agent = channel
+<span class="lnr">30 </span>          self.channel_agent.exchange_declare(exchange=<span class="Constant">'loadbalance.agent'</span>,
+<span class="lnr">31 </span>                                   <span class="Identifier">type</span>=<span class="Constant">'fanout'</span>,durable=<span class="Identifier">True</span>,
+<span class="lnr">32 </span>                                   callback=self.on_queue_declared)
+<span class="lnr">33 </span>
+<span class="lnr">34 </span>      <span class="Statement">def</span> <span class="Identifier">on_queue_declared</span>(self,frame):
+<span class="lnr">35 </span>          <span class="Statement">while</span> <span class="Constant">1</span>:
+<span class="lnr">36 </span>              <span class="Comment"># 阻塞当前线程的方式从队列获取任务</span>
+<span class="lnr">37 </span>              message,obj,msg_id = self.queue.get()
+<span class="lnr">38 </span>
+<span class="lnr">39 </span>              <span class="Comment"># 将回调加入字典</span>
+<span class="lnr">40 </span>              <span class="Statement">if</span> obj:
+<span class="lnr">41 </span>                  self.callback_map[msg_id] = obj
+<span class="lnr">42 </span>
+<span class="lnr">43 </span>              <span class="Comment"># 发送消息给RabbitMQ</span>
+<span class="lnr">44 </span>              self.channel_agent.basic_publish(exchange=<span class="Constant">'loadbalance.agent'</span>,
+<span class="lnr">45 </span>                                routing_key=<span class="Constant">''</span>,
+<span class="lnr">46 </span>                                body=simplejson.dumps(message),
+<span class="lnr">47 </span>                                properties=pika.BasicProperties(
+<span class="lnr">48 </span>                                delivery_mode = <span class="Constant">1</span> <span class="Comment"># make message nonpersistent</span>
+<span class="lnr">49 </span>                          ))
+</pre>
+</body>
+</html>

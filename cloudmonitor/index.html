@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<META NAME="generator" CONTENT="http://txt2tags.org">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/static/fancy.css">
+<TITLE>Cloud Monitor 虚拟机实例负载监控系统</TITLE>
+</HEAD><BODY BGCOLOR="white" TEXT="black">
+<CENTER>
+<H1>Cloud Monitor 虚拟机实例负载监控系统</H1>
+<FONT SIZE="4"><I>作者: roy@rootk.com</I></FONT><BR>
+<FONT SIZE="4">2012/10/30</FONT>
+</CENTER>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+  <UL>
+  <LI><A HREF="#toc1">1. 项目介绍</A>
+  <LI><A HREF="#toc2">2. 结构</A>
+    <UL>
+    <LI><A HREF="#toc3">2.1. 结构图</A>
+    <LI><A HREF="#toc4">2.2. 结构说明</A>
+    </UL>
+  <LI><A HREF="#toc5">3. 功能说明</A>
+    <UL>
+    <LI><A HREF="#toc6">3.1. 监控端</A>
+    <LI><A HREF="#toc7">3.2. WEB客户端</A>
+    </UL>
+  <LI><A HREF="#toc8">4. 功能截图</A>
+    <UL>
+    <LI><A HREF="#toc9">4.1. 启用报表</A>
+    <LI><A HREF="#toc10">4.2. 启用时限</A>
+    <LI><A HREF="#toc11">4.3. 报表和续订</A>
+    <LI><A HREF="#toc12">4.4. 报表详情</A>
+    </UL>
+  <LI><A HREF="#toc13">5. 开发过程</A>
+    <UL>
+    <LI><A HREF="#toc14">5.1. 采集服务</A>
+    <LI><A HREF="#toc15">5.2. 生成报表数据</A>
+    <LI><A HREF="#toc16">5.3. API Server</A>
+    <LI><A HREF="#toc17">5.4. WEB端</A>
+    </UL>
+  <LI><A HREF="#toc18">6. 代码片段</A>
+    <UL>
+    <LI><A HREF="#toc19">6.1. 采集服务</A>
+    <LI><A HREF="#toc20">6.2. API接口</A>
+      <UL>
+      <LI><A HREF="#toc21">6.2.1. token实现</A>
+      <LI><A HREF="#toc22">6.2.2. 请求处理</A>
+      </UL>
+    </UL>
+  <LI><A HREF="#toc23">7. 应用情况</A>
+  </UL>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+<A NAME="toc1"></A>
+<H1>1. 项目介绍</H1>
+
+<OL>
+<LI>基于libvirt的基础上，采集虚拟机实例的CPU负载、网卡传输、磁盘读写等参数，并根据年月日等时间单位生成相应的数据；
+<LI>使用WEB API的方式提供接口给客户端；
+<LI>客户端可以设置是否启用某个虚拟机实例的监测功能，并设置功能开启的时间长短；
+<LI>客户端使用amchart展示性能数据图。
+</OL>
+
+<A NAME="toc2"></A>
+<H1>2. 结构</H1>
+
+<A NAME="toc3"></A>
+<H2>2.1. 结构图</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmonitor/cloudmonitor.png" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc4"></A>
+<H2>2.2. 结构说明</H2>
+
+<OL>
+<LI>配置libvirtd让客户端可以通过tcp协议连接到libvirtd；
+<LI>cloud monitor的daemon在单独的线程中每隔60秒使用python-libvirt连接到libvirtd，取得所有的虚拟机列表，并保存到DB；
+<LI>另一个线程定时从DB中取得虚拟机列表，通过队列发送到线程池；
+<LI>线程池为每一个需要获取信息的虚拟机启动一个线程，并获取它的CPU负载等信息。获取到的信息存入到DB；
+<LI>crontab中每隔固定的时间从DB中取得最初采集的数据，生成每小时/天/星期/月/年的数据，并再次存入DB；
+<LI>API Server监听在TCP 8080，提供了数据访问和开启/关闭实例监控的接口；
+<LI>在WEB端，API Client封装好对API Server的各种接口的访问，方便调用；
+<LI>WEB用户查看数据时，就调用API Client封装好的接口，发起对API Server的访问；
+<LI>API Server返回的数据使用amchart展示在WEB页面上。
+</OL>
+
+<A NAME="toc5"></A>
+<H1>3. 功能说明</H1>
+
+<A NAME="toc6"></A>
+<H2>3.1. 监控端</H2>
+
+<OL>
+<LI>libvirt的daemon程序libvirtd监听在tcp 16905端口；
+<LI>cloud monitro的daemon运行在后台，通过tcp连接到libvirtd；
+<LI>定期采集虚拟机实例的CPU负载、网卡传输、磁盘读写的信息；
+<LI>采集到的结果经过简单处理保存在MySQL；
+<LI>有crontab任务，定期从DB中读取数据并按照小时/天/星期/月/年生成相应的数据；
+<LI>API Server提供接口给客户端访问性能数据，并提供开启虚拟机实例监控的接口。
+</OL>
+
+<A NAME="toc7"></A>
+<H2>3.2. WEB客户端</H2>
+
+<OL>
+<LI>WEB端通过封装好的API Client连接到API Server，根据用户请求取得相应的数据；
+<LI>在WEB页面上使用amchart展示性能数据图。
+</OL>
+
+<A NAME="toc8"></A>
+<H1>4. 功能截图</H1>
+
+<A NAME="toc9"></A>
+<H2>4.1. 启用报表</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmonitor/start_report.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc10"></A>
+<H2>4.2. 启用时限</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmonitor/start_report_time.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc11"></A>
+<H2>4.3. 报表和续订</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmonitor/report_list.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc12"></A>
+<H2>4.4. 报表详情</H2>
+
+<P>
+<IMG ALIGN="middle" SRC="/static/images/cloudmonitor/report_detail.jpeg" BORDER="0" ALT="">
+</P>
+
+<A NAME="toc13"></A>
+<H1>5. 开发过程</H1>
+
+<A NAME="toc14"></A>
+<H2>5.1. 采集服务</H2>
+
+<UL>
+<LI>libvirt是一套完整的对KVM、Xen等底层虚拟化技术提供统一API接口的方案，它提供了C、Python、Ruby等语言的接口；
+<LI>libvirtd是libvirt的daemon程序，可以让libvirt client通过SSH、TCP、TLS和本地访问等方式连接到libvirt提供的接口；
+<LI>python的libvirt库是一个C扩展，上层封装为方便python调用的接口；
+<LI>libvirt和采集服务分布在不同机器上，所以通过TCP方式访问是性能最好的；
+<LI>从libvirt得到的是CPU使用时间，要转换为CPU负载，需要间隔一定时间采集两次得到CPU时间差，并经过公式计算：100 * cputime / (time_sleep * cores * 1000000000)；
+<LI>同样的磁盘读写和网卡传输得到也是一个增量值，要得到平均值需要采集两次并计算差值；
+<LI>采集到的原始信息出入到DB。
+</UL>
+
+<A NAME="toc15"></A>
+<H2>5.2. 生成报表数据</H2>
+
+<UL>
+<LI>采用<A HREF="http://www.amcharts.com/">amcharts 2.0</A>作为报表的页面展示，amchart是一个javascript驱动的图表展示组件，支持柱状图、条形图、线形图、面积图等等；
+<LI>采用普通的线形图；
+<LI>在django的模板内嵌入<A HREF="http://www.amcharts.com/">amcharts</A>。
+</UL>
+
+<A NAME="toc16"></A>
+<H2>5.3. API Server</H2>
+
+<UL>
+<LI>使用<A HREF="http://webpy.org/">web.py</A>作为web api server；
+<LI>使用mimerender装饰每个url handler，返回内容为json格式；
+<LI>使用gevent的多进程模式驱动web.py；
+<LI>提供对性能数据的获取、启用/关闭报表功能等接口。
+</UL>
+
+<A NAME="toc17"></A>
+<H2>5.4. WEB端</H2>
+
+<UL>
+<LI>使用httplib2作为客户端；
+<LI>封装对API Server的接口；
+<LI>使用twitter出品的<A HREF="https://github.com/twitter/bootstrap">bootstrap</A>和jquery作为前端的支持库。
+</UL>
+
+<A NAME="toc18"></A>
+<H1>6. 代码片段</H1>
+
+<A NAME="toc19"></A>
+<H2>6.1. 采集服务</H2>
+
+<P>
+{% include 'libvirt.py.html' %}
+</P>
+
+<A NAME="toc20"></A>
+<H2>6.2. API接口</H2>
+
+<A NAME="toc21"></A>
+<H3>6.2.1. token实现</H3>
+
+<P>
+验证token的装饰器代码：
+{% include 'token.py.html' %}
+</P>
+
+<A NAME="toc22"></A>
+<H3>6.2.2. 请求处理</H3>
+
+<P>
+{% include 'request_handler.py.html' %}
+</P>
+
+<A NAME="toc23"></A>
+<H1>7. 应用情况</H1>
+
+<UL>
+<LI>目前应用在<A HREF="http://try.cloud-open.cn">cloudopen</A>上；
+<LI>被上海电信、IDC客户使用，客户反响不错。
+</UL>
+
+<!-- html code generated by txt2tags 2.6 (http://txt2tags.org) -->
+<!-- cmdline: txt2tags -t html index.t2t -->
+</BODY></HTML>

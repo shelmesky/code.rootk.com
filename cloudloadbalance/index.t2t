@@ -1,0 +1,146 @@
+基于Openstack Nova的自动扩展和负载均衡
+作者: roy@rootk.com
+2012/11/03
+
+
+%!target: html
+%!options: --toc --toc-level 3
+%!encoding: utf-8
+%!style: /static/fancy.css
+
+
++ 项目介绍 +
++ OpenStack 是由 Rackspace 和 NASA 共同开发的云计算平台，帮助服务商和企业内部实现类似于 Amazon EC2 和 S3 的云基础架构服务(Infrastructure as a Service, IaaS)。
++ Nova用于为单个用户或使用群组启动虚拟机实例。
++ 在Nova的基础上，监测虚拟机的性能负载，根据策略自动生成新的虚拟机实例。并自动将原虚拟机上运行的服务，使用负载均衡器分配到多台虚拟机上。
+
+
++ 结构 +
+++ 结构图 ++
+[/static/images/cloudloadbalance/cloud_loadbalance.jpeg]
+
+++ 结构说明 ++
+
++++ RabbitMQ +++
++ RabbitMQ做为整个系统的消息中枢，Server、Agent、Monitor等组件通过RabbitMQ传递消息。
++ 使用fanout类型的exchange，消息队列持久化。
++ 各个组件之间采用json格式传递消息
+
+
++++ Monitor +++
++ 从Server获取需要监控的虚拟机列表。
++ 每次启动时都从Server获取最新的列表，自身并不将列表持久化到外部存储上。
++ 在内存中维护这个列表，并在消息队列的Consumer一端守候，接收新的虚拟机UUID，并把它加入这个列表。
++ 监控列表中虚拟机的CPU负载，如果某个虚拟机达到了预订的阀值，则会将它的UUID发送给Server。
+
+
++++ Server +++
++ 提供HTTP API接口，增加/删除需要负载均衡的虚拟机实例、负载均衡服务，增加/删除域名，提供管理员接口监视系统信息等。
++ 提供接口给Monitor获取需要监控的虚拟机实例列表；
++ 接收来自Monitor的消息；
++ 调用nova创建新的虚拟机，并得到新虚拟机的IP地址；
++ 查询数据库中用户预先定义的负载均衡服务(HTTP/TCP负载均衡)，如果是HTTP类型的主机则调用DNS Server的接口创建新域名；
++ 查询每条记录中是否有AgentID，有则说明已经创建过，直接使用已有的Agent ID。如果没有则使用调度器选择一台Agent；
++ 加载负载均衡服务的模板，并用所有虚拟机的IP地址和用户的预定义的端口创建Nginx负载均衡；
++ 生成唯一的消息ID，最总将消息通过RabbitMQ发送给Agent。
+
+
++++ Agent +++
++ 封装对Nginx的操作，如增加/删除负载均衡主机、reload nginx；
++ 守候在RabbitMQ队列的Consumer一端，接收来自Server的消息；
++ 调用Nginx的接口，完成对负载均衡主机的添加；
++ 返回结果并填充消息，通过RabbitMQ发送给Server；
+
+
++ 功能说明 +
+++ 监控 ++
+- 从Server获取监控列表的虚拟机列表；
+- 监视虚拟机的CPU负载，达到预设阀值则通知Server。
+
+
+++ 创建虚拟机 ++
+- 调用Nova的接口创建虚拟机，等待并获取新虚拟机的IP地址；
+
+
+++ 创建负载均衡主机 ++
+- 加载模板，用原虚拟机和新虚拟机的IP地址填充模板；
+- 发送渲染完成的模板内容发送到Agent。
+
+
+++ API接口 ++
+- 提供增加/删除监视虚拟机、增加/删除负载均衡服务的接口；
+- 提供管理员接口，查看整个系统的状态。
+
+
++ 开发过程 +
+
+
+++ Monitor ++
+- 在cloud monitor的基础上，增加过滤接口，并从Server得到的虚拟机的UUID列表；
+- 当CPU负载超过时，使用消息队列将UUID发送给Server。
+
+
+++ Server ++
+
+
++++ 发送消息 +++
+- 基于回调的风格开发；
+- 使用python-pika库作为RabbitMQ的客户端，使用非阻塞的方式连接；
+- 与Agent的通信采用固定格式的JSON消息，消息中携带message id；
+- 因为RabbitMQ的队列均为单工通信，无确认机制(无法从消息层面确认对方已经收到消息，即对方何时接收消息以及是否接收消息，RabbitMQ不关心)；
+
+
++++ 接收及处理 +++
+- message id在一次完整的和Agent通信的过程中使用，即发送给Agent的消息和从Agent返回的消息中均为同一个message id；
+- 使用Tornado web server作为API Server；
+- 因为Tornado为单线程，基于事件的非阻塞服务器，故在Request Handler中不能阻塞当前线程；
+- 对于和Agent的通信，以及向数据库添加/删除/修改内容都通过单独的线程，阻塞在python的队列上并等待任务。Tornado的Request Handler通过python的队列和这些线程通信，并将每个实例化的Request Handler和一个唯一的message id通过python的队列发送给线程；
+- 每个工作线程维护自己的回调字典，对于从Agent返回的消息，根据返回消息中的message id，调用对应的Request Handler的write函数，完成Request Handler；
+
+
++++ 持久化 +++
+- 使用SQLAlchemy作为ORM层；
+- 为每个表做独立的model；
+- 工作在线程安全模式；
+- 由独立的线程调用。
+
+
+++ Agent ++
++++ 封装Nginx操作 +++
+- 封装对Nginx增加/删除负载均衡主机的操作，增强对异常的判断；
+- 尽量完备的异常处理机制。
+
+
++++ 接收消息 +++
+- 使用python-pika作为RabbitMQ的客户端，使用非阻塞的方式连接；
+- 分析来自Server的消息，对于增加/删除操作，调用对应的函数。
+
+
++ 代码片段 +
+
+++ 发送消息 ++
+{% include 'sender.html' %}
+
+
+++ 接收消息 ++
+{% include 'receiver.html' %}
+
+
+++ Tornado的Request Handler ++
+{% include 'request_handler.html' %}
+
+
+
++ 功能截图 +
+
+++ 增加监控虚拟机 ++
+[/static/images/cloudloadbalance/enable_loadbalance.jpeg]
+
+++ 增加HTTP负载均衡服务 ++
+[/static/images/cloudloadbalance/add_httphost.jpeg]
+
+++ 增加TCP负载均衡服务 ++
+[/static/images/cloudloadbalance/add_tcphost.jpeg]
+
+++ 负载均衡主机列表 ++
+[/static/images/cloudloadbalance/host_list.jpeg]

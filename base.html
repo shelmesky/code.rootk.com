@@ -1,0 +1,25 @@
+<html>
+	<title>
+	{% block title %}Default title{% end %}
+	</title>
+	
+	<head>
+	{% block head %}
+		<link href="{{ static_url("css/bootstrap.css") }}" rel="stylesheet">
+		<link href="{{ static_url("css/code.css") }}" rel="stylesheet">
+			
+		<script type="text/javascript" src="{{ static_url("js/jquery-1.9.1.js") }}"></script>
+		<script type="text/javascript" src="{{ static_url("js/bootstrap.js") }}" ></script>
+		<script type="text/javascript" src="{{ static_url("js/code.js") }}" ></script>
+		
+		<link href="/static/img/favicon.ico" rel="shortcut icony">
+	{% end %}
+	
+	{% block extra_head %}{% end %}
+	</head>
+	
+	<body>
+		{% block content %}{% end %}
+	</body>
+	
+</html>

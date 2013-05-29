@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>~/classifier-V2.py.html</title>
+<meta name="Generator" content="Vim/7.3">
+<meta name="plugin-version" content="vim7.3_v10">
+<meta name="syntax" content="python">
+<meta name="settings" content="number_lines,use_css,pre_wrap,expand_tabs">
+<style type="text/css">
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #000000; background-color: #ffffff; }
+body { font-family: monospace; color: #000000; background-color: #ffffff; }
+.lnr { color: #a52a2a; }
+.Constant { color: #ff00ff; }
+.Type { color: #2e8b57; font-weight: bold; }
+.Identifier { color: #008b8b; }
+.Comment { color: #0000ff; }
+.Statement { color: #a52a2a; font-weight: bold; }
+-->
+</style>
+</head>
+<body>
+<pre>
+<span class="lnr"> 1 </span>          <span class="Statement">try</span>:
+<span class="lnr"> 2 </span>              <span class="Comment"># 打开到libvirt的连接</span>
+<span class="lnr"> 3 </span>              self.conn = _libvirt.<span class="Identifier">open</span>(self.uri)
+<span class="lnr"> 4 </span>          <span class="Statement">except</span> <span class="Type">Exception</span>, e:
+<span class="lnr"> 5 </span>              logger.exception(e)
+<span class="lnr"> 6 </span>          ......
+<span class="lnr"> 7 </span>          ......
+<span class="lnr"> 8 </span>          <span class="Comment"># 根据虚拟机的UUID得到其domain</span>
+<span class="lnr"> 9 </span>          <span class="Statement">try</span>:
+<span class="lnr">10 </span>              dom = self.conn.lookupByUUIDString(uuid_string)
+<span class="lnr">11 </span>          <span class="Statement">except</span>:
+<span class="lnr">12 </span>              logger.error(<span class="Constant">&quot;Error occurred while get dom info from %s&quot;</span> % uuid_string)
+<span class="lnr">13 </span>              ret = condition_delete_uuid(uuid_string)
+<span class="lnr">14 </span>              <span class="Statement">if</span> ret:
+<span class="lnr">15 </span>                  logger.debug(<span class="Constant">&quot;Delete nonexists uuid: %s&quot;</span> % uuid_string)
+<span class="lnr">16 </span>                  db.delete(cloud_host_table,where=<span class="Constant">&quot;`uuid`='%s'&quot;</span> % uuid_string)
+<span class="lnr">17 </span>          <span class="Comment"># 两次采样的间隔时间</span>
+<span class="lnr">18 </span>          time_sleep = <span class="Constant">3</span>
+<span class="lnr">19 </span>
+<span class="lnr">20 </span>          <span class="Comment"># 得到domain的信息</span>
+<span class="lnr">21 </span>          infos_first = dom.info()
+<span class="lnr">22 </span>          start_cputime = infos_first[<span class="Constant">4</span>]
+<span class="lnr">23 </span>
+<span class="lnr">24 </span>          <span class="Comment">#当前时间</span>
+<span class="lnr">25 </span>          start_time = time.time()
+<span class="lnr">26 </span>          <span class="Comment"># 暂停3秒</span>
+<span class="lnr">27 </span>          time.sleep(time_sleep)
+<span class="lnr">28 </span>
+<span class="lnr">29 </span>          <span class="Comment"># 再次得到domain的信息</span>
+<span class="lnr">30 </span>          infos_second = dom.info()
+<span class="lnr">31 </span>          end_cputime = infos_second[<span class="Constant">4</span>]
+<span class="lnr">32 </span>          <span class="Comment"># 第二次的时间</span>
+<span class="lnr">33 </span>          end_time = time.time()
+<span class="lnr">34 </span>          <span class="Comment"># 经过的时间</span>
+<span class="lnr">35 </span>          cputime = (end_cputime - start_cputime)
+<span class="lnr">36 </span>          cores = infos_second[<span class="Constant">3</span>]
+<span class="lnr">37 </span>
+<span class="lnr">38 </span>          <span class="Comment"># 计算使用率的公式 100 * CPU时间 / (暂停的时间 * 核心数* 10的9次方)</span>
+<span class="lnr">39 </span>          cpu_usage = <span class="Constant">100</span> * cputime / (time_sleep*cores*<span class="Constant">1000000000</span>)
+<span class="lnr">40 </span>          result[<span class="Constant">'ip'</span>] = self.ip
+<span class="lnr">41 </span>          result[<span class="Constant">'name'</span>] = dom.name()
+<span class="lnr">42 </span>          result[<span class="Constant">'time'</span>] = time.strftime(<span class="Constant">'%Y%m%d%H%M'</span>,time.localtime())
+<span class="lnr">43 </span>          result[<span class="Constant">'state'</span>] = infos_second[<span class="Constant">0</span>]
+<span class="lnr">44 </span>          result[<span class="Constant">'max_memory'</span>] = infos_second[<span class="Constant">1</span>]
+<span class="lnr">45 </span>          result[<span class="Constant">'memory_usage'</span>] = infos_second[<span class="Constant">2</span>]
+<span class="lnr">46 </span>          result[<span class="Constant">'number_cpus'</span>] = infos_second[<span class="Constant">3</span>]
+<span class="lnr">47 </span>          result[<span class="Constant">'cpu_usage'</span>] = cpu_usage
+<span class="lnr">48 </span>          result[<span class="Constant">'uuid_string'</span>] = dom.UUIDString()
+<span class="lnr">49 </span>
+<span class="lnr">50 </span>          <span class="Comment"># 得到domain的其他详细信息，例如磁盘和网卡 </span>
+<span class="lnr">51 </span>          domain_xml = dom.XMLDesc(<span class="Constant">0</span>)
+</pre>
+</body>
+</html>
