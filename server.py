@@ -10,6 +10,7 @@ import urllib
 import simplejson as json
 import socket
 import argparse
+import signal
 
 import tornado.ioloop
 from tornado.web import RequestHandler
@@ -149,6 +150,27 @@ def daemonize (stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     os.dup2(si.fileno(), sys.stdin.fileno())
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
+
+
+def server_stop():
+    ioloop.IOLoop.instance().stop()
+
+
+def handler_signal(signum, frame):
+    # if process receive SIGNINT/SITTERM/SIGQUIT
+    # stop the server
+    if signum == 2 or signum == 3 or signum ==15:
+        LOG.error("Receive signal: %s" % signum)
+        LOG.error("Server quit.")
+        server_stop()
+    elif signum == 14:  # ignore SIGALARM
+        pass
+
+
+signal.signal(signal.SIGTERM, handler_signal)
+signal.signal(signal.SIGINT, handler_signal)
+signal.signal(signal.SIGQUIT, handler_signal)
+signal.signal(signal.SIGALRM, handler_signal)
 
 
 if __name__ == '__main__':
