@@ -52,19 +52,23 @@ def authenticated(auth):
 
         @functools.wraps(f)
         def new_f(handler, *args, **kwargs):
-            auth_header = handler.request.headers.get('Authorization')
-            if auth_header is None: 
-                return _request_auth(handler)
-            if not auth_header.startswith('Basic '): 
-                return _request_auth(handler)
-    
-            auth_decoded = base64.decodestring(auth_header[6:])
-            username, password = auth_decoded.split(':', 2)
-    
-            if (auth(username, password)):
-                f(handler, *args, **kwargs)
+            # 是有启用HTTP Basic AUTH方式认证
+            if handler.settings['user_auth']:
+                auth_header = handler.request.headers.get('Authorization')
+                if auth_header is None: 
+                    return _request_auth(handler)
+                if not auth_header.startswith('Basic '): 
+                    return _request_auth(handler)
+        
+                auth_decoded = base64.decodestring(auth_header[6:])
+                username, password = auth_decoded.split(':', 2)
+        
+                if (auth(username, password)):
+                    f(handler, *args, **kwargs)
+                else:
+                    _request_auth(handler)
             else:
-                _request_auth(handler)
+                f(handler, *args, **kwargs)
         return new_f
     return decore
 
@@ -87,12 +91,17 @@ class Main(RequestHandler):
     @authenticated(login)
     @asynchronous
     def get(self):
-        ip_remote = self.request.remote_ip
-        ipCheck = ipTOAddress()
-        ip_detail = ipCheck(ip_remote, callback=self.on_callback)
+        if self.settings['ip2address']:
+            ip_remote = self.request.remote_ip
+            ipCheck = ipTOAddress()
+            ip_detail = ipCheck(ip_remote, callback=self.on_callback)
+        else:
+            #由于在国外VPS上调用TAOBAO IP地址库API容易导致超时
+            #所以在此禁用
+            self.on_callback(None)
     
     def on_callback(self, response):
-        body = json.loads(response.body)
+        body = json.loads(response.body) if response else None
         self.render("index.html", ip_info=body)
         return
     
@@ -110,7 +119,9 @@ if __name__ == '__main__':
         "cookie_secret": "27yc1u%9tt3$o^$3uu=6e(=2d7mykjd8@dc*#x0z%vm&0_vdq",
         "debug": True,   # debug mode not compatible with multiprocessing environment.
         "gzip": True,
-        'static_path': os.path.join(os.path.dirname(__file__), "static")
+        'static_path': os.path.join(os.path.dirname(__file__), "static"),
+        'ip2address': False,    # 获得客户端的IP地址，并查询TAOBAO IP地址库得到物理地址
+        'user_auth': False      # 使用HTTP BASIC AUTH认证
     }
     
     
