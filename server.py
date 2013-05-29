@@ -9,6 +9,7 @@ import httplib2
 import urllib
 import simplejson as json
 import socket
+import argparse
 
 import tornado.ioloop
 from tornado.web import RequestHandler
@@ -114,7 +115,62 @@ class Entry(RequestHandler):
         return
 
 
+#make current process goto daemon
+def daemonize (stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    # Do first fork.
+    try: 
+        pid = os.fork() 
+        if pid > 0:
+            sys.exit(0)   # Exit first parent.
+    except OSError, e: 
+        sys.stderr.write ("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror) )
+        sys.exit(1)
+
+    # Decouple from parent environment.
+    os.chdir(".") 
+    os.umask(0) 
+    os.setsid() 
+
+    # Do second fork.
+    try: 
+        pid = os.fork() 
+        if pid > 0:
+            sys.exit(0)   # Exit second parent.
+    except OSError, e: 
+        sys.stderr.write ("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror) )
+        sys.exit(1)
+
+    # Now I am a daemon!
+    
+    # Redirect standard file descriptors.
+    si = open(stdin, 'r')
+    so = open(stdout, 'a+')
+    se = open(stderr, 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="code.rootk.com")
+    exclusive_group = parser.add_mutually_exclusive_group(required=False)
+    exclusive_group.add_argument('-r', '--dryrun', action='store_true',
+                            dest='dryrun', default=False, help='just do dry run')
+    exclusive_group.add_argument('-d', '--daemon', action='store_true',
+                            dest='daemon', default=False, help='make this process go background.')
+    
+    sysargs = sys.argv[1:]
+    args = parser.parse_args(args=sysargs)
+    if len(sysargs) < 1:
+        parser.print_help()
+        sys.exit(1)
+    else:
+        if args.dryrun:
+           pass
+        elif args.daemon:
+           print "we will disappear from console :)"
+           daemonize()
+    
     settings = {
         "cookie_secret": "27yc1u%9tt3$o^$3uu=6e(=2d7mykjd8@dc*#x0z%vm&0_vdq",
         "debug": True,   # debug mode not compatible with multiprocessing environment.
@@ -132,13 +188,12 @@ if __name__ == '__main__':
         ], **settings)
 
 
+    server = HTTPServer(app, xheaders=True)
+    server.bind(8000, family=socket.AF_INET)
+    
     if settings.get('debug', None) == False:
-        server = HTTPServer(app, xheaders=True)
-        server.bind(8000, family=socket.AF_INET)
         server.start(4)
     else:
-        server = HTTPServer(app, xheaders=True)
-        server.bind(8000, family=socket.AF_INET)
         server.start()
     
     tornado.ioloop.IOLoop.instance().start()
