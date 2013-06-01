@@ -1,0 +1,26 @@
+淘宝爬虫原型，基于Gevent
+作者: roy@rootk.com
+2012/10/29
+
+
+%!target: html
+%!options: --toc --toc-level 3
+%!encoding: utf-8
+%!style: /static/fancy.css
+
++ 项目介绍 +
+基于python gevent框架的淘宝爬虫原型，支持多个节点之间负载均衡，采用类似与HTTP的协议通信。支持并发控制。
+
+
++ 结构 +
+
+
+++ 结构图 ++
+[/static/images/crawler/crawler.png]
+
+
+++ 结构说明 ++
+
+
++ 功能说明 +
+

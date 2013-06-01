@@ -153,15 +153,15 @@ def daemonize (stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
 
 
 def server_stop():
-    ioloop.IOLoop.instance().stop()
+    tornado.ioloop.IOLoop.instance().stop()
 
 
 def handler_signal(signum, frame):
     # if process receive SIGNINT/SITTERM/SIGQUIT
     # stop the server
     if signum == 2 or signum == 3 or signum ==15:
-        LOG.error("Receive signal: %s" % signum)
-        LOG.error("Server quit.")
+        print("Receive signal: %s" % signum)
+        print("Server quit.")
         server_stop()
     elif signum == 14:  # ignore SIGALARM
         pass

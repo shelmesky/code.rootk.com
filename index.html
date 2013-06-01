@@ -30,11 +30,11 @@
 			
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_6">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_1">
 			1. 分布式长连接聊天室 (已开源)
 		      </a>
 		    </div>
-		    <div id="collapse_6" class="accordion-body collapse">
+		    <div id="collapse_1" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于Tornado、Redis、UDP多播的分布式聊天室</p>
 			<p>分布式架构，AJAX长连接，使用异步非阻塞的WEB服务器。UDP多播同样使用异步非阻塞的通讯方式。</p>
@@ -49,11 +49,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_5">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_2">
 			2. 云计算平台试用排队系统 (已开源)
 		      </a>
 		    </div>
-		    <div id="collapse_5" class="accordion-body collapse">
+		    <div id="collapse_2" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于Tornado、MongoDB的排队服务。当资源有限时，只处理有限的用户请求，对后续的用户采取排队服务。正在运行的用户到期后，通知排队线程可以运行。</p>
 			<p>RESTful API接口，MongoDB做数据持久化，包括定时器和崩溃恢复机制。</p>
@@ -65,11 +65,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_1">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_3">
 			3. CloudMonitor 基于libvirt监控虚拟机的CPU/磁盘/网卡性能 (已开源)
 		      </a>
 		    </div>
-		    <div id="collapse_1" class="accordion-body collapse">
+		    <div id="collapse_3" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于libvir监控虚拟机的CPU/磁盘/网卡，并自动将性能数据转化为WEB页面的图表，目前已应用到上海电信、IDC等客户。</p>
 			<p>使用Django+MySQL开发，amchart作为WEB图标展示。</p>
@@ -81,11 +81,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_2">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_4">
 			4. Cloud Loadbalance 为OpenStack云平台增加自动扩展和负载均衡 (已开源)
 		      </a>
 		    </div>
-		    <div id="collapse_2" class="accordion-body collapse">
+		    <div id="collapse_4" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>Cloud Loadbalance 基于openstack云计算平台的nova(虚拟机创建和管理)基础上，增加nova的自动扩展能力，并实现其HTTP/TCP协议的自动负载均衡。在2012 python大会上，以此项目参加过演讲。</p>
 			<p>Tornado + MySQL + RabbitMQ开发。RabbitMQ做消息队列，异步的消息队列客户端。分布式架构，无单点故障。</p>
@@ -98,11 +98,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_3">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_5">
 			5. Cloud Manage 监控物理机、虚拟机(无需agent)的网络、磁盘性能，并展示报表
 		      </a>
 		    </div>
-		    <div id="collapse_3" class="accordion-body collapse">
+		    <div id="collapse_5" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>Cloud Manage 现对物理机、虚拟机(无需安装agent)的系统、网络的监控、报警，并在WEB页面上展示其性能报表。</p>
 			<p>物理机、虚拟机健康度显示，性能图标，故障显示，管理员分派任务，自定义消息通知策略。</p>
@@ -115,14 +115,29 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_4">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_6">
 			6. 财付通支付接口的python版本 (已开源)
 		      </a>
 		    </div>
-		    <div id="collapse_4" class="accordion-body collapse">
+		    <div id="collapse_6" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>python的财付通支付接口，基于官方的PHP版本，用python重写，已开源在github上。</p>
 			<a target="_blank" href="https://github.com/shelmesky/python-tenpay">点击查看源码</a>
+		      </div>
+		    </div>
+		  </div>
+		  
+		  <div class="accordion-group">
+		    <div class="accordion-heading">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_7">
+			7. 淘宝爬虫原型，基于gevent (已开源)
+		      </a>
+		    </div>
+		    <div id="collapse_7" class="accordion-body collapse">
+		      <div class="accordion-inner">
+			<p>基于python gevent框架的淘宝爬虫原型，支持多个节点之间负载均衡，采用类似与HTTP的协议通信。支持并发控制。</p>
+			<a target="_blank" href="/entry/crawler">点击查看项目详细信息</a>
+			<a target="_blank" href="https://github.com/shelmesky/crawler">点击查看源码</a>
 		      </div>
 		    </div>
 		  </div>
