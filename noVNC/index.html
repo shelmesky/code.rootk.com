@@ -1,0 +1,67 @@
+<html>
+<head>
+    <title></title>
+    <style type="text/css">
+        body {
+            padding: 40px;
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+<h3>介绍</h3>
+
+<p>通俗的说：</p>
+
+<p><a href="http://kanaka.github.io/noVNC/">noVNC</a>提供一种在网页上通过html5的Canvas，访问机器上vncserver提供的vnc服务，需要做tcp到websocket的转化，才能在html5中显示出来。
+网页就是一个客户端，类似与vncviewer。但直接访问的不是VNCServer，而是noVNC服务器，它提供了VNC协议到WebSocket之间的转换。</p>
+
+<p>通过下图可能看得更清楚一些：</p>
+<p><img src="/static/images/noVNC/模块图.png" width="50%" /></p>
+
+<p>可以很清楚的看到，noVNC服务器是在将VNC协议的数据打包到WebSocket协议中，发送给浏览器。
+并将从浏览器WebSocket连接中读取到的数据发送给VNC服务器。可以说，noVNC服务器是一个VNC代理，在浏览器和VNC服务器之间架起了一个桥梁。</p>
+
+<h3>问题</h3>
+
+<p>但是noVNC并不是完美的，它还存在以下问题：</p>
+
+<ul>
+<li>基于进程的并发，每个在独立的进程中被处理</li>
+<li>对后端VNC服务器的连接只包装了OpenStack</li>
+<li>自带的对VNC数据的记录和回放比较原始，容易产生性能问题</li>
+</ul>
+
+<h3>问题解决</h3>
+
+<h4>解决方案</h4>
+
+<ul>
+<li>将基于进程的并发改为基于轻量Greenlet的并发，使用Gevent支持，提高并发性能</li>
+<li>增加对XenServer虚拟机VNC控制台的连接</li>
+<li>将VNC数据的记录通过TCP协议发送到远端服务器记录，并增加数据管理</li>
+<li>将VNC数据的回放通过远端服务器提供</li>
+</ul>
+
+<h4>架构图</h4>
+<p><img src="/static/images/noVNC/架构图.png" width="50%" /></p>
+
+<h4>屏幕截图</h4>
+
+<h5>XenServer Linux虚拟机VNC控制台</h5>
+<p><img src="/static/images/noVNC/Linux虚拟机VNC控制台.png" width="70%" /></p>
+
+<h5>XenServer Windows虚拟机VNC控制台</h5>
+<p><img src="/static/images/noVNC/Windows虚拟机VNC控制台.png" width="70%" /></p>
+
+<h5>XenServer 虚拟机VNC记录文件</h5>
+<p><img src="/static/images/noVNC/虚拟机VNC记录文件.png" width="70%" /></p>
+
+<h5>XenServer 虚拟机VNC回放和暂停</h5>
+<p><img src="/static/images/noVNC/虚拟机VNC回放和暂停.png" width="70%" /></p>
+
+</body>
+</html>

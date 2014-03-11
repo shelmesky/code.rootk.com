@@ -1,0 +1,214 @@
+<html>
+<head>
+    <title></title>
+    <style type="text/css">
+        body {
+            padding: 40px;
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+<h2>1. 概述</h2>
+
+<h3>1.1 产品功能</h3>
+
+<p><strong>WiseMonitor</strong>是集成基础设施、虚拟化平台、云平台监控报警为一体的监控系统。</p>
+
+<p>对于基础设施支持以下监控功能：</p>
+
+<ul>
+<li>检测主机是否在线</li>
+<li>检测主机上运行的服务</li>
+<li>主机和服务监控报警</li>
+<li>主机和服务性能数据展示</li>
+<li>使用插件自定义服务检测</li>
+<li>网络设备监控</li>
+<li>网络设备流量展示</li>
+<li>主机和服务的报警信息通过WEB、SMS方式的实时通知</li>
+</ul>
+
+<p>对于虚拟化平台，支持以下监控功能：</p>
+
+<ul>
+<li>XenServer Master/Slaver架构监控</li>
+<li>XenServer主机详细信息</li>
+<li>XenServer虚拟机监控</li>
+<li>XenServer虚拟机CPU Usage、磁盘IO、网卡IO性能数据展示</li>
+<li>XenServer主机和虚拟机的VNC控制台的访问和回放</li>
+<li>XenServer报警信息通过WEB、SMS方式的实时通知用户</li>
+</ul>
+
+<p>对于云平台支持支持以下监控功能：</p>
+
+<ul>
+<li>CloudStack Zone的列表和详情</li>
+<li>CloudStack资源使用率展示</li>
+</ul>
+
+<h3>1.2 面向的用户</h3>
+
+<p><strong>WiseMonitor</strong>面向运营IAAS公有云、私有云的用户，为运维团队提供详细全面的云平台纵深监控。</p>
+
+<h3>1.3 典型客户</h3>
+
+<ul>
+<li><p>在河南洛阳大学科技园的云平台部署中，<strong>WiseMonitor</strong>监控平台运行稳定，监控效果突出及时 ，获得运维团队的好评。</p></li>
+<li><p>在山东滕州公安系统政务云平台部署升级中，<strong>WiseMonitor</strong>监控平台替代原有的监控平台，将基础设施、虚拟化平台、云平台的监控集成在一个平台中，实现统一访问。</p></li>
+<li><p>在[浦软汇智公有云]的运营中，公司的运维团队一致认为<strong>WiseMonitor</strong>超过了原有的Zabbix监控。</p></li>
+</ul>
+
+<h2>2. 架构</h2>
+
+<h3>2.1 架构图</h3>
+
+<p><img src="/static/images/wisemonitor/wisemonitor.png" width="70%" /></p>
+
+<h3>2.2 开发语言</h3>
+
+<p><strong>WiseMonitor</strong>混合使用了<code>Python</code>、<code>C</code>、<code>Golang</code>开发。</p>
+
+<p><code>Python</code>代码占<code>85%</code>，<code>C</code>代码占<code>10%</code>，<code>Golang</code>代码占<code>5%</code>。</p>
+
+<h3>2.3 模块架构</h3>
+
+<p>模块<strong>A</strong>基于<strong>Tornado</strong>实现，提供以下功能：</p>
+
+<ul>
+<li>供用户通过浏览器访问</li>
+<li>基于Tornado的IOLoop的异步客户端，包括：MongoDB、RabbitMQ、CloudStack。</li>
+<li>在Tornado的IOLoop的驱动下，以异步的方式实现Nagios的报警信息(通过RabbitMQ发送)、CloudStack API访问、Nagios和XenServer的报警信息存储到MongoDB</li>
+<li>运行在独立线程中的XenServer告警信息实时获取</li>
+<li>告警信息通过长轮询(Comet)技术实现WEB页面中实时通知</li>
+</ul>
+
+<p>模块<strong>B</strong>基于<strong>Gevent</strong>实现，提供以下功能：</p>
+
+<ul>
+<li>提供用户通过支持HTML5 Canvas功能的浏览器访问XenServer主机、虚拟机的<strong>VNC控制台</strong></li>
+<li>记录用户每次访问VNC控制台的数据，将数据通过TCP协议发送到<strong>C</strong>模块保存</li>
+</ul>
+
+<p>模块<strong>C</strong>使用<strong>Golang</strong>语言实现，提供以下功能:</p>
+
+<ul>
+<li>监听在TCP 23457端口，将<strong>B</strong>模块发送来的VNC数据记录成文件</li>
+<li>提供HTTP JSON API接口，供用户列出、删除VNC记录文件</li>
+<li>使用WebSocket服务器，接受用户浏览器通过WebSocket协议获取VNC记录的数据，并在浏览器端回放</li>
+</ul>
+
+<p>模块<strong>D</strong>本质为使用<strong>C</strong>语言开发的动态共享库，加载到Nagios主进程中，提供以下功能：</p>
+
+<ul>
+<li>注册Nagios的事件回调，监听以下事件：创建、删除主机、服务；主机、服务告警；主机、服务产生性能数据；</li>
+<li>将监听到的事件，发送到RabbitMQ服务器，提供给其他模块通过RabbitMQ客户端访问</li>
+<li>将监听到的事件，保存到MongoDB中，提供给其他模块访问</li>
+</ul>
+
+<h2>3. 产品截图</h2>
+
+<h3>3.1 基础设施监控</h3>
+
+<h4>3.1.1 服务器列表</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/服务器列表.png" height="70%"></p>
+
+<h4>3.1.2 添加服务器</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/添加服务器.png" height="70%"></p>
+
+<h4>3.1.3 服务器性能报表</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/服务器性能报表.png" height="70%"></p>
+
+<h4>3.1.4 服务列表</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/服务列表.png" height="70%"></p>
+
+<h4>3.1.5 服务性能报表</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/服务性能报表.png" height="70%"></p>
+
+<h4>3.1.6 添加网络流量监控服务</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/添加网络流量监控服务.png" height="70%"></p>
+
+<h4>3.1.7 网络流量报表</h4>
+
+<p><img src="/static/images/wisemonitor/基础设施监控/网络流量报表.png" height="70%"></p>
+
+
+<h3>3.2 虚拟化监控</h3>
+
+<h4>3.2.1 XenServer主机列表</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer主机列表.png" height="70%"></p>
+
+<h4>3.2.2 XenServer详细信息</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer详细信息.png" height="70%"></p>
+
+<h4>3.2.4 XenServer VNC控制台</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer VNC控制台.png" height="70%"></p>
+
+<h4>3.2.4 XenServer VNC控制台回放列表</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer VNC回放列表.png" height="70%"></p>
+
+<h4>3.2.4 XenServer VNC控制台回放</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer VNC控制台回放.png" height="70%"></p>
+
+<h4>3.2.5 XenServer虚拟机列表</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer虚拟机列表.png" height="70%"></p>
+
+<h4>3.2.6 XenServer虚拟机性能报表</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer虚拟机性能报表.png" height="70%"></p>
+
+<h4>3.2.7 XenServer虚拟机报警设置</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer虚拟机性能报警设置.png" height="70%"></p>
+
+<h4>3.2.8 XenServer虚拟机VNC控制台</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer虚拟机VNC控制台.png" height="70%"></p>
+
+<h4>3.2.8 XenServer虚拟机VNC控制台回放列表</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer虚拟机VNC控制台回放列表.png" height="70%"></p>
+
+
+<h4>3.2.8 XenServer虚拟机VNC控制台回放</h4>
+
+<p><img src="/static/images/wisemonitor/虚拟化监控/XenServer虚拟机VNC控制台回放.png" height="70%"></p>
+
+
+<h3>3.3 云平台监控</h3>
+
+<h4>3.3.1 CloudStack Zone列表</h4>
+<p><img src="/static/images/wisemonitor/云平台监控/CloudStack Zone列表.png" height="70%"></p>
+
+<h4>3.3.2 CloudStack Zone的资源使用率</h4>
+<p><img src="/static/images/wisemonitor/云平台监控/CloudStack Zone的资源使用率.png" height="70%"></p>
+
+<h4>3.3.3 CloudStack Zone的详细信息</h4>
+<p><img src="/static/images/wisemonitor/云平台监控/CloudStack Zone的详细信息.png" height="70%"></p>
+
+<h3>3.4 报警</h3>
+
+<h4>3.4.5 物理设备报警</h4>
+<p><img src="/static/images/wisemonitor/报警/物理设备报警.png" height="70%"></p>
+
+<h4>3.4.6 XenServer报警</h4>
+<p><img src="/static/images/wisemonitor/报警/XenServer报警.png" height="70%"></p>
+
+<h3>4. 视频演示</h3>
+
+</body>
+</html>
