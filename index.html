@@ -27,13 +27,42 @@
 		
 		<div class="accordion" id="accordion2">
 
-		  <div class="accordion-group">
+        <div class="accordion-group">
 		    <div class="accordion-heading">
 		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_1">
-			1. 支持几乎所有常见协议和虚拟化平台的远程控制台访问工具(已开源)
+			1. Golang网络库中socket阻塞调度源码剖析
 		      </a>
 		    </div>
 		    <div id="collapse_1" class="accordion-body collapse">
+		      <div class="accordion-inner">
+			<p>分析Golang源码中关于Socket调用阻塞调度的行为</p>
+			<a target="_blank" href="http://blog.rootk.com/post/analyst-socket-blocking-schedule-in-golang.html">查看项目详细信息</a>
+		      </div>
+		    </div>
+		  </div>
+
+
+        <div class="accordion-group">
+		    <div class="accordion-heading">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_2">
+			2. 内核MMAP实例和原理分析
+		      </a>
+		    </div>
+		    <div id="collapse_2" class="accordion-body collapse">
+		      <div class="accordion-inner">
+			<p>从进程的虚拟地址空间、线性地址空间、物理地址空间开始，分析mmap系用调用在内核的实现原理。</p>
+			<a target="_blank" href="http://blog.rootk.com/post/mmap-example-and-kernel-implementation.html">查看项目详细信息</a>
+		      </div>
+		    </div>
+		  </div>
+
+		  <div class="accordion-group">
+		    <div class="accordion-heading">
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_3">
+			3. 支持几乎所有常见协议和虚拟化平台的远程控制台访问工具(已开源)
+		      </a>
+		    </div>
+		    <div id="collapse_3" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>远程管理工具，支持VNC/RDP/SPICE/SSH/TELNET协议。 支持连接到Libvirt、XenServer、VMWare ESXI管理的虚拟机。 使用websocket协议传输数据，在HTML5浏览器中使用canvas显示。 使用Golang开发，性能卓越，部署简单。</p>
 			<a target="_blank" href="https://github.com/shelmesky/rconsole">查看项目详细信息</a>
@@ -44,11 +73,11 @@
 			
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_2">
-			2. WiseMonitor云计算监控系统(已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_4">
+			4. WiseMonitor云计算监控系统
 		      </a>
 		    </div>
-		    <div id="collapse_2" class="accordion-body collapse">
+		    <div id="collapse_4" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>全面监控物理设备、虚拟化平台(XenServer)、云平台(CloudStack)，提供性能报表和报警通知。</p>
 			<a target="_blank" href="/entry/wisemonitor">查看项目详细信息</a>
@@ -59,11 +88,11 @@
 
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_3">
-			3. 基于noVNC改造的支持XenServer的虚拟机Console的VNC访问和录制回放
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_5">
+			5. 基于noVNC改造的支持XenServer的虚拟机Console的VNC访问和录制回放
 		      </a>
 		    </div>
-		    <div id="collapse_3" class="accordion-body collapse">
+		    <div id="collapse_5" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于noVNC改造，使用Gevent处理并发请求。使用Golang实现VNC数据的录制和回放。</p>
 			<a target="_blank" href="/entry/noVNC">查看项目详细信息</a>
@@ -74,11 +103,11 @@
 
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_4">
-			4. 时实发送Nagios的性能数据和报警信息到RabbitMQ服务器，并保存到MongoDB中(已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_6">
+			6. 时实发送Nagios的性能数据和报警信息到RabbitMQ服务器，并保存到MongoDB中
 		      </a>
 		    </div>
-		    <div id="collapse_4" class="accordion-body collapse">
+		    <div id="collapse_6" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>在ndoutils的C代码上做二次开发，将Nagios中的配置信息、性能数据、告警信息通过RabbitMQ C客户端发送到RabbitMQ服务器，
             并同时保存这些数据到MongoDB中。</p>
@@ -89,11 +118,11 @@
 
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_5">
-			5. 基于Golang开发的博客系统(已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_7">
+			7. 基于Golang开发的博客系统
 		      </a>
 		    </div>
-		    <div id="collapse_5" class="accordion-body collapse">
+		    <div id="collapse_7" class="accordion-body collapse">
 		      <div class="accordion-inner">
             <p>基于Golang和Beego框架开发的博客，支持Markdown格式解析、RSS输出、文件批量上传、数据自动备份等功能。</p>
 			<a target="_blank" href="https://github.com/shelmesky/rblog">查看源码</a>
@@ -103,11 +132,11 @@
 			
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_6">
-			6. 淘宝爬虫原型，基于gevent (已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_8">
+			8. 淘宝爬虫原型，基于gevent
 		      </a>
 		    </div>
-		    <div id="collapse_6" class="accordion-body collapse">
+		    <div id="collapse_8" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于python gevent框架的淘宝爬虫原型，支持多个节点之间负载均衡，采用类似与HTTP的协议通信。支持并发控制。</p>
 			<a target="_blank" href="/entry/crawler">查看项目详细信息</a>
@@ -118,11 +147,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_7">
-			7. 分布式长连接聊天室 (已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_9">
+			9. 分布式长连接聊天室
 		      </a>
 		    </div>
-		    <div id="collapse_7" class="accordion-body collapse">
+		    <div id="collapse_9" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于Tornado、Redis、UDP多播的分布式聊天室</p>
 			<p>分布式架构，AJAX长连接，使用异步非阻塞的WEB服务器。UDP多播同样使用异步非阻塞的通讯方式。</p>
@@ -137,11 +166,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_8">
-			8. 云计算平台试用排队系统 (已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_10">
+			10. 云计算平台试用排队系统
 		      </a>
 		    </div>
-		    <div id="collapse_8" class="accordion-body collapse">
+		    <div id="collapse_10" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于Tornado、MongoDB的排队服务。当资源有限时，只处理有限的用户请求，对后续的用户采取排队服务。正在运行的用户到期后，通知排队线程可以运行。</p>
 			<p>RESTful API接口，MongoDB做数据持久化，包括定时器和崩溃恢复机制。</p>
@@ -153,11 +182,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_9">
-			9. Cloud Loadbalance 为OpenStack云平台增加自动扩展和负载均衡 (已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_11">
+			11. Cloud Loadbalance 为OpenStack云平台增加自动扩展和负载均衡
 		      </a>
 		    </div>
-		    <div id="collapse_9" class="accordion-body collapse">
+		    <div id="collapse_11" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>Cloud Loadbalance 基于openstack云计算平台的nova(虚拟机创建和管理)基础上，增加nova的自动扩展能力，并实现其HTTP/TCP协议的自动负载均衡。在2012 python大会上，以此项目参加过演讲。</p>
 			<p>Tornado + MySQL + RabbitMQ开发。RabbitMQ做消息队列，异步的消息队列客户端。分布式架构，无单点故障。</p>
@@ -170,11 +199,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_10">
-			10. Cloud Manage 监控物理机、虚拟机(无需agent)的网络、磁盘性能，并展示报表
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_12">
+			12. Cloud Manage 监控物理机、虚拟机(无需agent)的网络、磁盘性能，并展示报表
 		      </a>
 		    </div>
-		    <div id="collapse_10" class="accordion-body collapse">
+		    <div id="collapse_12" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>Cloud Manage 现对物理机、虚拟机(无需安装agent)的系统、网络的监控、报警，并在WEB页面上展示其性能报表。</p>
 			<p>物理机、虚拟机健康度显示，性能图标，故障显示，管理员分派任务，自定义消息通知策略。</p>
@@ -187,11 +216,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_11">
-			11. 财付通支付接口的python版本 (已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_13">
+			13. 财付通支付接口的python版本
 		      </a>
 		    </div>
-		    <div id="collapse_11" class="accordion-body collapse">
+		    <div id="collapse_13" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>python的财付通支付接口，基于官方的PHP版本，用python重写，已开源在github上。</p>
 			<a target="_blank" href="https://github.com/shelmesky/python-tenpay">查看源码</a>
@@ -201,11 +230,11 @@
 		  
 		  <div class="accordion-group">
 		    <div class="accordion-heading">
-		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_12">
-			12. CloudMonitor 基于libvirt监控虚拟机的CPU/磁盘/网卡性能 (已开源)
+		      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" data-target="#collapse_14">
+			14. CloudMonitor 基于libvirt监控虚拟机的CPU/磁盘/网卡性能
 		      </a>
 		    </div>
-		    <div id="collapse_12" class="accordion-body collapse">
+		    <div id="collapse_14" class="accordion-body collapse">
 		      <div class="accordion-inner">
 			<p>基于libvir监控虚拟机的CPU/磁盘/网卡，并自动将性能数据转化为WEB页面的图表，目前已应用到上海电信、IDC等客户。</p>
 			<p>使用Django+MySQL开发，amchart作为WEB图标展示。</p>
